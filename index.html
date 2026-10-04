@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Digital twin kualitas udara DKI Jakarta: polusi dan cuaca historis, real-time, dan prakiraan dalam 3D." />
+    <title>Jakarta Air Twin</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%230072bc'/><path d='M7 18c4-5 7 3 11-2s5-1 7-3' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round'/></svg>" />
+  </head>
+  <body class="calcite-mode-dark">
+    <calcite-shell content-behind>
+      <calcite-navigation slot="header">
+        <calcite-navigation-logo slot="logo" icon="effects" heading="Jakarta Air Twin"></calcite-navigation-logo>
+        <div slot="content-end" id="header-controls"></div>
+      </calcite-navigation>
+
+      <calcite-shell-panel slot="panel-start" id="panel-start" display-mode="float-content" width="m"></calcite-shell-panel>
+
+      <div class="stage">
+        <arcgis-scene>
+          <arcgis-zoom slot="top-right"></arcgis-zoom>
+          <arcgis-navigation-toggle slot="top-right"></arcgis-navigation-toggle>
+          <arcgis-compass slot="top-right"></arcgis-compass>
+          <arcgis-home slot="top-right"></arcgis-home>
+        </arcgis-scene>
+        <div id="dock" class="dock-host"></div>
+      </div>
+
+      <calcite-shell-panel slot="panel-end" id="panel-end" display-mode="float-content" width="m" resizable></calcite-shell-panel>
+    </calcite-shell>
+
+    <div id="boot" class="boot">Memuat digital twin Jakarta…</div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
