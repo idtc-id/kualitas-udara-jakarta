@@ -46,7 +46,7 @@ export function createAboutWidget(registry: ModuleRegistry): WidgetModule {
           h("li", {}, "ISPU dihitung dari nilai per jam sehingga bersifat indikatif; ISPU resmi memakai rata-rata 24 jam (PM) dan 8 jam (CO)."),
           h("li", {}, "Model CAMS global beresolusi ~45 km, sehingga perbedaan antar titik di Jakarta kecil. Integrasi data SPKU (udara.jakarta.go.id) memberi variasi spasial yang nyata."),
           h("li", {}, "Permukaan polusi adalah interpolasi IDW antar titik, bukan pengukuran per sel."),
-          h("li", {}, "Bangunan 3D: OpenStreetMap 3D Buildings (Esri). © kontributor OpenStreetMap."),
+          h("li", {}, "Bangunan 3D: basemap 3D ArcGIS (Esri); cadangan OpenStreetMap 3D Buildings. © kontributor OpenStreetMap."),
         ),
       );
     },

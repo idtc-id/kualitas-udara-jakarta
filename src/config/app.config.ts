@@ -2,11 +2,15 @@ import type { MonitoringStation, WeatherLocation } from "../core/types";
 
 /**
  * Building source. Swap this to change the 3D city model without touching code:
- *  - "portal-item": an ArcGIS Online / Enterprise scene layer item (default: Esri OSM 3D Buildings)
+ *  - "basemap": use the buildings of the active ArcGIS 3D basemap (e.g. dark-gray-3d);
+ *    `fallback` is added when a 2D basemap is active or the 3D basemap fails to load
+ *  - "portal-item": any ArcGIS Online / Enterprise item. Layer items (scene/feature service) are
+ *    added as the building layer; Web Scene / Web Map items are used as the basemap instead
  *  - "scene-service": a SceneServer URL (e.g. a Jakarta Satu 3D service)
  *  - "geojson": footprints with a height attribute (e.g. an Overture Maps extract), extruded client-side
  */
 export type BuildingSource =
+  | { type: "basemap"; fallback?: Exclude<BuildingSource, { type: "basemap" }> }
   | { type: "portal-item"; id: string; portalUrl?: string }
   | { type: "scene-service"; url: string }
   | { type: "geojson"; url: string; heightField: string; defaultHeight?: number };
@@ -23,8 +27,14 @@ export interface AppConfig {
   boundaryUrl: string;
   /** Activity data + emission factors for the carbon emission module. */
   emissionInventoryUrl: string;
+  /** Default basemap per theme (ArcGIS 3D basemaps include 3D buildings, labels and trees). */
   basemaps: { dark: string; light: string };
+  /** Used when the 3D basemap cannot be loaded (e.g. no access); paired with buildings.fallback. */
+  fallbackBasemaps: { dark: string; light: string };
+  /** Choices offered in the Layers widget. */
+  basemapOptions: { id: string; label: string }[];
   buildings: BuildingSource;
+  buildingsFallback?: Exclude<BuildingSource, { type: "basemap" }>;
   stations: MonitoringStation[];
   weatherLocations: WeatherLocation[];
   realtimeRefreshMinutes: number;
@@ -44,8 +54,23 @@ export const appConfig: AppConfig = {
   gridCellSize: 0.012,
   boundaryUrl: "./data/dki-boundary.geojson",
   emissionInventoryUrl: "./data/emission-inventory.json",
-  basemaps: { dark: "dark-gray-vector", light: "gray-vector" },
-  buildings: { type: "portal-item", id: "ca0470dbbddb4db28bad74ed39949e25" },
+  basemaps: { dark: "dark-gray-3d", light: "gray-3d" },
+  fallbackBasemaps: { dark: "dark-gray-vector", light: "gray-vector" },
+  basemapOptions: [
+    { id: "dark-gray-3d", label: "Dark Gray 3D" },
+    { id: "gray-3d", label: "Light Gray 3D" },
+    { id: "navigation-dark-3d", label: "Navigasi gelap 3D" },
+    { id: "navigation-3d", label: "Navigasi 3D" },
+    { id: "streets-3d", label: "Streets 3D" },
+    { id: "topo-3d", label: "Topografi 3D" },
+    { id: "osm-3d", label: "OpenStreetMap 3D" },
+    { id: "satellite", label: "Citra satelit (2D + bangunan OSM)" },
+    { id: "dark-gray-vector", label: "Dark Gray 2D (+ bangunan OSM)" },
+  ],
+  // Primary 3D source: ArcGIS item c444b24b184c4523a5dc96248bfea4e1 (type detected at runtime).
+  buildings: { type: "portal-item", id: "c444b24b184c4523a5dc96248bfea4e1" },
+  // Used when the primary source cannot be loaded.
+  buildingsFallback: { type: "portal-item", id: "ca0470dbbddb4db28bad74ed39949e25" }, // Esri OSM 3D Buildings
 
   // Monitoring points. Coordinates of the SPKU and US Embassy monitors are
   // approximate; "model" points only sample the model grid to fill gaps.

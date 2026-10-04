@@ -21,6 +21,7 @@ Aplikasi web **digital twin** yang menampilkan polusi udara, cuaca, dan estimasi
 | **Emisi karbon** | Estimasi CO₂e *bottom-up* per sektor & kota administrasi, laju per jam, kolom 3D bertumpuk, **simulasi skenario** (EV, pengurangan km, energi terbarukan, sampah) |
 | **Cuaca BMKG** | Prakiraan per kota administrasi pada jam aktif (ikon & deskripsi BMKG) |
 | **Grafik** | Time series polutan per stasiun + variabel cuaca (termasuk tinggi lapisan batas/PBL), garis ambang ISPU, area prakiraan, tooltip |
+| **Basemap 3D** | Basemap 3D ArcGIS (bangunan, label, pohon 3D) dengan pemilih basemap; fallback otomatis ke 2D + OSM 3D Buildings |
 | **Tema** | Gelap/terang (Calcite) |
 
 | Space-time cube & tren | Emisi karbon | Forecast + cuaca BMKG |
@@ -40,7 +41,7 @@ Konfigurasi opsional lewat `.env` (lihat `.env.example`):
 
 | Variabel | Fungsi |
 |---|---|
-| `VITE_ARCGIS_API_KEY` | API key ArcGIS jika memakai basemap/layer yang butuh autentikasi |
+| `VITE_ARCGIS_API_KEY` | API key ArcGIS (ArcGIS Location Platform) bila basemap 3D / item butuh autentikasi. Tanpa key, aplikasi otomatis beralih ke basemap 2D + bangunan cadangan |
 | `VITE_BMKG_BASE_URL` | Base URL API BMKG. Default `/proxy/bmkg` (proxy Vite) saat dev, `https://api.bmkg.go.id` saat build |
 | `VITE_USE_MOCK_DATA` | `true` = selalu pakai data sintetis (demo offline) |
 | `VITE_UDARA_JAKARTA_URL` | Endpoint JSON data SPKU DLH DKI (udara.jakarta.go.id) atau proxy Anda |
@@ -53,7 +54,7 @@ Konfigurasi opsional lewat `.env` (lihat `.env.example`):
 | Polusi stasiun | [udara.jakarta.go.id](https://udara.jakarta.go.id) (DLH DKI) | Adapter `jsonRecordsProvider`, aktif bila `VITE_UDARA_JAKARTA_URL` diisi; nama field disesuaikan di `udaraJakarta.ts` |
 | Prakiraan cuaca | [BMKG](https://data.bmkg.go.id/prakiraan-cuaca/) `api.bmkg.go.id/publik/prakiraan-cuaca?adm4=` | 3 hari, per 3 jam; batas 60 request/menit; **wajib mencantumkan BMKG sebagai sumber** |
 | Cuaca historis | [Open-Meteo](https://open-meteo.com/) Forecast/Archive | API publik BMKG tidak menyediakan arsip |
-| Bangunan 3D | Esri OpenStreetMap 3D Buildings | Bisa diganti ke scene service Jakarta Satu atau GeoJSON Overture (`appConfig.buildings`) |
+| Bangunan 3D | Item ArcGIS [`c444b24b184c4523a5dc96248bfea4e1`](https://www.arcgis.com/home/item.html?id=c444b24b184c4523a5dc96248bfea4e1) + **basemap 3D ArcGIS** (`dark-gray-3d` / `gray-3d`) | Jenis item dideteksi otomatis: layer → layer bangunan, Web Scene/Web Map → basemap. Cadangan: Esri OSM 3D Buildings. Bisa diganti ke Jakarta Satu / GeoJSON Overture (`appConfig.buildings`) |
 | Emisi | `public/data/emission-inventory.json` | **Angka asumsi**: ganti dengan data resmi (Inventarisasi GRK DKI, BPS, PLN) |
 
 Jika semua sumber nyata gagal, aplikasi otomatis memakai **data sintetis** dan menampilkan peringatan. Data nyata dan sintetis tidak pernah dicampur.

@@ -20,6 +20,8 @@ export interface AppState {
   followLive: boolean;
   selectedStationId: string | null;
   theme: "dark" | "light";
+  /** Active basemap id (see appConfig.basemapOptions). */
+  basemap: string;
   layerVisibility: Record<string, boolean>;
   airQuality: AirQualityDataset | null;
   weather: WeatherDataset | null;

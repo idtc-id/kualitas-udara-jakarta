@@ -4,6 +4,7 @@ import "./styles/main.css";
 import "./ui/components";
 
 import esriConfig from "@arcgis/core/config";
+import Basemap from "@arcgis/core/Basemap";
 import Camera from "@arcgis/core/Camera";
 import SpatialReference from "@arcgis/core/geometry/SpatialReference";
 import { appConfig } from "./config/app.config";
@@ -33,6 +34,7 @@ async function bootstrap(): Promise<void> {
     followLive: false,
     selectedStationId: appConfig.stations[0].id,
     theme: prefersLight ? "light" : "dark",
+    basemap: appConfig.basemaps[prefersLight ? "light" : "dark"],
     layerVisibility: Object.fromEntries(registry.layers.map((l) => [l.id, l.visibleByDefault])),
     airQuality: null,
     weather: null,
@@ -58,7 +60,9 @@ async function bootstrap(): Promise<void> {
   );
 
   const sceneEl = document.querySelector("arcgis-scene")!;
-  sceneEl.basemap = appConfig.basemaps[store.state.theme];
+  // "item:<id>" = a Web Scene / Web Map portal item used as basemap.
+  const toBasemap = (id: string) => (id.startsWith("item:") ? new Basemap({ portalItem: { id: id.slice(5) } }) : id);
+  sceneEl.basemap = toBasemap(store.state.basemap);
   sceneEl.ground = "world-elevation";
   // Explicit spatial reference: the view still becomes ready if the basemap is unreachable.
   sceneEl.spatialReference = SpatialReference.WebMercator;
@@ -68,7 +72,14 @@ async function bootstrap(): Promise<void> {
 
   const view = sceneEl.view;
   const map = view.map!;
-  store.on(["theme"], (s) => (map.basemap = appConfig.basemaps[s.theme] as never));
+  store.on(["basemap"], (s) => (map.basemap = toBasemap(s.basemap) as never));
+  // Follow the theme only while the user is on one of the theme defaults.
+  store.on(["theme"], (s) => {
+    const defaults = [...Object.values(appConfig.basemaps), ...Object.values(appConfig.fallbackBasemaps)];
+    if (!defaults.includes(s.basemap)) return;
+    const fallback = Object.values(appConfig.fallbackBasemaps).includes(s.basemap);
+    store.set({ basemap: (fallback ? appConfig.fallbackBasemaps : appConfig.basemaps)[s.theme] });
+  });
 
   const data = new DataService(appConfig, store, registry);
   const ctx: AppContext = { config: appConfig, store, data, view, map };
