@@ -1,3 +1,4 @@
+import { trafficProfile } from "../../core/profiles";
 import type { AirQualityProvider, PollutantSeries } from "../../core/types";
 import { isWeekend, localHour, noise, smoothNoise } from "../mockUtils";
 
@@ -7,13 +8,6 @@ import { isWeekend, localHour, noise, smoothNoise } from "../mockUtils";
  * photochemical ozone at midday, and fixed per-station offsets.
  * Used only when every real provider fails (or VITE_USE_MOCK_DATA=true).
  */
-
-function trafficProfile(hour: number): number {
-  const morning = Math.exp(-((hour - 7.5) ** 2) / 3);
-  const evening = Math.exp(-((hour - 19) ** 2) / 4);
-  const night = hour < 5 || hour > 22 ? 0.35 : 0;
-  return 0.45 + 0.6 * morning + 0.5 * evening + night;
-}
 
 function sunProfile(hour: number): number {
   return Math.max(0, Math.sin(((hour - 6) / 12) * Math.PI));

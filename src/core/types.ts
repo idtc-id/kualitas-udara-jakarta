@@ -20,6 +20,8 @@ export interface GeoLocation {
 export interface MonitoringStation extends GeoLocation {
   /** "spku" = KLHK/DLH monitoring station, "embassy" = US Embassy monitor, "model" = virtual point sampled from a model. */
   kind: "spku" | "embassy" | "model";
+  /** Short label shown on the 3D map. */
+  shortName: string;
   district?: string;
 }
 

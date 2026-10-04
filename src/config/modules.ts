@@ -5,12 +5,15 @@
  */
 import type { LayerModule, ModuleRegistry, WidgetModule } from "../core/modules";
 import type { AirQualityProvider } from "../core/types";
+import { appConfig } from "./app.config";
 import { createAtmosphereLayer } from "../layers/atmosphereLayer";
 import { createBuildingsLayer } from "../layers/buildingsLayer";
 import { createSpaceTimeCubeLayer } from "../layers/spaceTimeCubeLayer";
 import { createPollutionSurfaceLayer } from "../layers/pollutionSurfaceLayer";
 import { createStationsLayer } from "../layers/stationsLayer";
 import { createWindLayer } from "../layers/windLayer";
+import { createEmissionWidget } from "../emissions/emissionWidget";
+import { createEmissionsLayer } from "../emissions/emissionsLayer";
 import { mockAirQuality } from "../providers/airquality/mockAirQuality";
 import { openMeteoAirQuality } from "../providers/airquality/openMeteoAirQuality";
 import { createUdaraJakartaProvider } from "../providers/airquality/udaraJakarta";
@@ -45,6 +48,7 @@ export function createRegistry(): ModuleRegistry {
     createStationsLayer(),
     createWindLayer(),
     createSpaceTimeCubeLayer(),
+    createEmissionsLayer(appConfig.emissionInventoryUrl),
     createAtmosphereLayer(),
   ];
 
@@ -53,6 +57,7 @@ export function createRegistry(): ModuleRegistry {
     chartWidget,
     weatherWidget,
     trendWidget,
+    createEmissionWidget(appConfig.emissionInventoryUrl),
     createLayersWidget(layers),
     createAboutWidget(registry),
     summaryWidget,

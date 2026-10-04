@@ -45,7 +45,7 @@ export const weatherWidget: WidgetModule = {
           const fc = s.bmkg.find((b) => b.location.id === loc.id);
           const slot = fc ? slotAt(fc, t) : null;
           const sample = slot?.sample ?? merged[loc.id] ?? null;
-          const source = slot ? "BMKG" : sample ? "Open-Meteo / model" : null;
+          const source = slot ? "BMKG" : !sample ? null : s.weather?.synthetic ? "data sintetis (contoh)" : "Open-Meteo";
           const icon = slot?.iconUrl
             ? h("img", { src: slot.iconUrl, alt: sample?.description ?? "", width: 40, height: 40 })
             : h("calcite-icon", { icon: conditionIcon(sample?.condition ?? null), scale: "l" });

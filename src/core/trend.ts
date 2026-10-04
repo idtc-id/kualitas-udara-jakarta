@@ -12,7 +12,8 @@ export interface TrendResult {
   p: number;
   /** Sen's slope, in value units per bin. */
   slope: number;
-  direction: "naik" | "turun" | "tidak signifikan";
+  /** "stabil" = no significant monotonic trend at the chosen alpha. */
+  direction: "naik" | "turun" | "stabil";
   n: number;
 }
 
@@ -52,7 +53,7 @@ export function mannKendall(values: (number | null)[], alpha = 0.05): TrendResul
   const mid = slopes.length / 2;
   const slope = slopes.length % 2 ? slopes[Math.floor(mid)] : (slopes[mid - 1] + slopes[mid]) / 2;
 
-  return { s, z, p, slope, n, direction: p < alpha ? (z > 0 ? "naik" : "turun") : "tidak signifikan" };
+  return { s, z, p, slope, n, direction: p < alpha ? (z > 0 ? "naik" : "turun") : "stabil" };
 }
 
 export interface TimeBin {

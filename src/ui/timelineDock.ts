@@ -15,7 +15,7 @@ export function mountTimelineDock(ctx: AppContext, host: HTMLElement): void {
 
   const timeLabel = h("div", { class: "dock__time" });
   const modeLabel = h("div", { class: "dock__mode" });
-  const slider = h("calcite-slider", { min: 0, max: 1, step: 1, value: 0, labelHandles: false, scale: "m", labelText: "Waktu", class: "dock__slider" });
+  const slider = h("calcite-slider", { min: 0, max: 1, step: 1, value: 0, labelHandles: false, scale: "m", class: "dock__slider", attrs: { "aria-label": "Waktu" } });
 
   const speed = h("calcite-select", { scale: "s", label: "Kecepatan", class: "dock__speed" });
   for (const v of SPEEDS) speed.append(h("calcite-option", { value: String(v), selected: v === store.state.speed }, `${v}× jam/detik`));
@@ -90,7 +90,7 @@ export function mountTimelineDock(ctx: AppContext, host: HTMLElement): void {
       timeLabel.textContent = t != null ? formatDateTime(t) : "–";
       const now = floorHour(Date.now());
       const tag = t == null ? "" : t > now ? "prakiraan" : t === now ? "saat ini" : "historis";
-      modeLabel.textContent = `${MODE_LABEL[s.mode]}${tag ? ` · ${tag}` : ""}`;
+      modeLabel.textContent = tag && tag !== MODE_LABEL[s.mode].toLowerCase() ? `${MODE_LABEL[s.mode]} · ${tag}` : MODE_LABEL[s.mode];
       live.appearance = s.followLive ? "solid" : "outline";
     },
     true,

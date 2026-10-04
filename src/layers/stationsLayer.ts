@@ -112,7 +112,7 @@ export function createStationsLayer(): LayerModule {
           const label = labelGraphics.get(station.id)!;
           (label.geometry as Point).z = Math.round(height / 20) * 20;
           label.geometry = label.geometry!.clone();
-          label.symbol = labelSymbol(r?.value != null ? `${station.name.split(" ")[0]} · ${Math.round(r.value)}` : station.name.split(" ")[0], s.theme);
+          label.symbol = labelSymbol(r?.value != null ? `${station.shortName} · ${Math.round(r.value)}` : station.shortName, s.theme);
         }
       };
 

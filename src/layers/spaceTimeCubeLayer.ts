@@ -95,14 +95,15 @@ export function createSpaceTimeCubeLayer(): LayerModule {
           });
         }
 
-        // Time axis labels next to the first station's stack.
-        const anchor = config.stations[0];
+        // Time ruler at the south-east corner of the area, away from station labels.
+        const [, ymin, xmax, ymax] = config.extent;
+        const anchor = { longitude: xmax - 0.01, latitude: ymin + (ymax - ymin) * 0.12 };
         const every = Math.max(1, Math.ceil(bins.length / 8));
         bins.forEach((bin, b) => {
           if (b % every && b !== bins.length - 1) return;
           graphics.push(
             new Graphic({
-              geometry: new Point({ longitude: anchor.longitude + 0.012, latitude: anchor.latitude, z: BASE + b * SLICE_HEIGHT + SLICE_HEIGHT / 2 }),
+              geometry: new Point({ longitude: anchor.longitude, latitude: anchor.latitude, z: BASE + b * SLICE_HEIGHT + SLICE_HEIGHT / 2 }),
               symbol: label(`${formatShortDate(bin.start)} ${formatTime(bin.start)}`, s.theme),
             }),
           );

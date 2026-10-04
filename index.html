@@ -8,7 +8,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%230072bc'/><path d='M7 18c4-5 7 3 11-2s5-1 7-3' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round'/></svg>" />
   </head>
   <body class="calcite-mode-dark">
-    <calcite-shell content-behind>
+    <calcite-shell>
       <calcite-navigation slot="header">
         <calcite-navigation-logo slot="logo" icon="effects" heading="Jakarta Air Twin"></calcite-navigation-logo>
         <div slot="content-end" id="header-controls"></div>
@@ -23,10 +23,11 @@
           <arcgis-compass slot="top-right"></arcgis-compass>
           <arcgis-home slot="top-right"></arcgis-home>
         </arcgis-scene>
-        <div id="dock" class="dock-host"></div>
       </div>
 
       <calcite-shell-panel slot="panel-end" id="panel-end" display-mode="float-content" width="m" resizable></calcite-shell-panel>
+
+      <footer slot="footer" id="dock" class="dock-host"></footer>
     </calcite-shell>
 
     <div id="boot" class="boot">Memuat digital twin Jakarta…</div>

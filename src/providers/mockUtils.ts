@@ -1,5 +1,7 @@
 import { HOUR, TIME_ZONE } from "../core/time";
 
+export { localHour } from "../core/time";
+
 /** Deterministic hash → [0, 1) so mock data is stable across reloads. */
 export function noise(...keys: (string | number)[]): number {
   let h = 2166136261;
@@ -20,12 +22,7 @@ export function smoothNoise(seed: string, t: number): number {
   return a + (b - a) * (0.5 - Math.cos(f * Math.PI) / 2);
 }
 
-const hourFmt = new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, hour: "numeric", hourCycle: "h23" });
 const dayFmt = new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, weekday: "short" });
-
-export function localHour(t: number): number {
-  return Number(hourFmt.format(t)) % 24;
-}
 
 export function isWeekend(t: number): boolean {
   const d = dayFmt.format(t);

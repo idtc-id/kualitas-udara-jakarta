@@ -21,6 +21,8 @@ export interface AppConfig {
   gridCellSize: number;
   /** GeoJSON polygon used to clip the pollution surface to DKI Jakarta. */
   boundaryUrl: string;
+  /** Activity data + emission factors for the carbon emission module. */
+  emissionInventoryUrl: string;
   basemaps: { dark: string; light: string };
   buildings: BuildingSource;
   stations: MonitoringStation[];
@@ -41,23 +43,24 @@ export const appConfig: AppConfig = {
   extent: [106.68, -6.375, 106.98, -6.085],
   gridCellSize: 0.012,
   boundaryUrl: "./data/dki-boundary.geojson",
+  emissionInventoryUrl: "./data/emission-inventory.json",
   basemaps: { dark: "dark-gray-vector", light: "gray-vector" },
   buildings: { type: "portal-item", id: "ca0470dbbddb4db28bad74ed39949e25" },
 
   // Monitoring points. Coordinates of the SPKU and US Embassy monitors are
   // approximate; "model" points only sample the model grid to fill gaps.
   stations: [
-    { id: "dki1", name: "DKI1 Bundaran HI", kind: "spku", district: "Jakarta Pusat", latitude: -6.1949, longitude: 106.823 },
-    { id: "dki2", name: "DKI2 Kelapa Gading", kind: "spku", district: "Jakarta Utara", latitude: -6.1536, longitude: 106.9106 },
-    { id: "dki3", name: "DKI3 Jagakarsa", kind: "spku", district: "Jakarta Selatan", latitude: -6.3574, longitude: 106.803 },
-    { id: "dki4", name: "DKI4 Lubang Buaya", kind: "spku", district: "Jakarta Timur", latitude: -6.2887, longitude: 106.9093 },
-    { id: "dki5", name: "DKI5 Kebon Jeruk", kind: "spku", district: "Jakarta Barat", latitude: -6.2074, longitude: 106.753 },
-    { id: "usemb-c", name: "US Embassy Jakarta Central", kind: "embassy", district: "Jakarta Pusat", latitude: -6.1822, longitude: 106.8342 },
-    { id: "usemb-s", name: "US Embassy Jakarta South", kind: "embassy", district: "Jakarta Selatan", latitude: -6.2361, longitude: 106.7934 },
-    { id: "m-priok", name: "Tanjung Priok", kind: "model", district: "Jakarta Utara", latitude: -6.11, longitude: 106.88 },
-    { id: "m-cengkareng", name: "Cengkareng", kind: "model", district: "Jakarta Barat", latitude: -6.15, longitude: 106.735 },
-    { id: "m-cakung", name: "Cakung", kind: "model", district: "Jakarta Timur", latitude: -6.185, longitude: 106.945 },
-    { id: "m-pasarminggu", name: "Pasar Minggu", kind: "model", district: "Jakarta Selatan", latitude: -6.285, longitude: 106.845 },
+    { id: "dki1", shortName: "DKI1", name: "DKI1 Bundaran HI", kind: "spku", district: "Jakarta Pusat", latitude: -6.1949, longitude: 106.823 },
+    { id: "dki2", shortName: "DKI2", name: "DKI2 Kelapa Gading", kind: "spku", district: "Jakarta Utara", latitude: -6.1536, longitude: 106.9106 },
+    { id: "dki3", shortName: "DKI3", name: "DKI3 Jagakarsa", kind: "spku", district: "Jakarta Selatan", latitude: -6.3574, longitude: 106.803 },
+    { id: "dki4", shortName: "DKI4", name: "DKI4 Lubang Buaya", kind: "spku", district: "Jakarta Timur", latitude: -6.2887, longitude: 106.9093 },
+    { id: "dki5", shortName: "DKI5", name: "DKI5 Kebon Jeruk", kind: "spku", district: "Jakarta Barat", latitude: -6.2074, longitude: 106.753 },
+    { id: "usemb-c", shortName: "USE-C", name: "US Embassy Jakarta Central", kind: "embassy", district: "Jakarta Pusat", latitude: -6.1822, longitude: 106.8342 },
+    { id: "usemb-s", shortName: "USE-S", name: "US Embassy Jakarta South", kind: "embassy", district: "Jakarta Selatan", latitude: -6.2361, longitude: 106.7934 },
+    { id: "m-priok", shortName: "Priok", name: "Tanjung Priok", kind: "model", district: "Jakarta Utara", latitude: -6.11, longitude: 106.88 },
+    { id: "m-cengkareng", shortName: "Cengkareng", name: "Cengkareng", kind: "model", district: "Jakarta Barat", latitude: -6.15, longitude: 106.735 },
+    { id: "m-cakung", shortName: "Cakung", name: "Cakung", kind: "model", district: "Jakarta Timur", latitude: -6.185, longitude: 106.945 },
+    { id: "m-pasarminggu", shortName: "Ps. Minggu", name: "Pasar Minggu", kind: "model", district: "Jakarta Selatan", latitude: -6.285, longitude: 106.845 },
   ],
 
   // One representative kelurahan per kota administrasi for BMKG's

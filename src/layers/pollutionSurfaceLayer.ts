@@ -15,7 +15,7 @@ import { readingsAt } from "../core/selectors";
 export function createPollutionSurfaceLayer(): LayerModule {
   const layer = new GraphicsLayer({ title: "Permukaan polusi (interpolasi)", elevationInfo: { mode: "on-the-ground" } });
   const cache = new Map<string, PolygonSymbol3D>();
-  let opacity = 0.38;
+  let opacity = 0.3;
   let render: () => void = () => {};
 
   const symbol = (color: string | null, height: number) => {

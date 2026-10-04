@@ -5,11 +5,12 @@ import "./ui/components";
 
 import esriConfig from "@arcgis/core/config";
 import Camera from "@arcgis/core/Camera";
+import SpatialReference from "@arcgis/core/geometry/SpatialReference";
 import { appConfig } from "./config/app.config";
 import { createRegistry } from "./config/modules";
 import { DataService } from "./core/dataService";
 import type { AppContext } from "./core/modules";
-import { Store } from "./core/store";
+import { Store, type AppState } from "./core/store";
 import { defaultRange } from "./core/time";
 import { startTimelinePlayer } from "./core/timeline";
 import { configureBmkg } from "./providers/weather/bmkg";
@@ -22,7 +23,7 @@ async function bootstrap(): Promise<void> {
 
   const registry = createRegistry();
   const prefersLight = window.matchMedia?.("(prefers-color-scheme: light)").matches;
-  const store = new Store({
+  const store = new Store<AppState>({
     mode: "historical",
     range: defaultRange("historical"),
     indicator: "pm2_5",
@@ -58,6 +59,8 @@ async function bootstrap(): Promise<void> {
   const sceneEl = document.querySelector("arcgis-scene")!;
   sceneEl.basemap = appConfig.basemaps[store.state.theme];
   sceneEl.ground = "world-elevation";
+  // Explicit spatial reference: the view still becomes ready if the basemap is unreachable.
+  sceneEl.spatialReference = SpatialReference.WebMercator;
   const { longitude, latitude, z, heading, tilt } = appConfig.camera;
   sceneEl.camera = new Camera({ position: { longitude, latitude, z }, heading, tilt });
   await sceneEl.viewOnReady();
@@ -68,6 +71,7 @@ async function bootstrap(): Promise<void> {
 
   const data = new DataService(appConfig, store, registry);
   const ctx: AppContext = { config: appConfig, store, data, view, map };
+  if (import.meta.env.DEV) Object.assign(window, { __twin: ctx });
 
   for (const layer of registry.layers) {
     try {

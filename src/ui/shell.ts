@@ -17,6 +17,9 @@ export function mountHeader(ctx: AppContext, host: HTMLElement): void {
   for (const m of MODES) {
     modes.append(h("calcite-segmented-control-item", { value: m.id, iconStart: m.icon, checked: store.state.mode === m.id }, m.label));
   }
+  store.on(["mode"], (s) => {
+    for (const item of modes.querySelectorAll("calcite-segmented-control-item")) item.checked = item.value === s.mode;
+  });
   modes.addEventListener("calciteSegmentedControlChange", () => {
     store.set({ mode: modes.value as TimeMode, followLive: modes.value === "realtime" });
   });
@@ -26,6 +29,7 @@ export function mountHeader(ctx: AppContext, host: HTMLElement): void {
     indicator.append(h("calcite-option", { value: id, selected: id === store.state.indicator }, label));
   }
   indicator.addEventListener("calciteSelectChange", () => store.set({ indicator: indicator.value as Indicator }));
+  store.on(["indicator"], (s) => (indicator.value = s.indicator));
 
   const theme = h("calcite-action", { text: "Ganti tema", icon: "moon", scale: "s" });
   theme.addEventListener("click", () => store.set({ theme: store.state.theme === "dark" ? "light" : "dark" }));

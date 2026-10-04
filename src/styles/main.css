@@ -201,6 +201,9 @@ arcgis-scene {
   color: var(--calcite-color-text-3);
   font-weight: var(--calcite-font-weight-medium);
 }
+.trend-table td:nth-child(2) {
+  white-space: nowrap;
+}
 .trend-table .num {
   text-align: end;
   font-variant-numeric: tabular-nums;
@@ -216,6 +219,30 @@ arcgis-scene {
 }
 .trend-table tr.down calcite-icon {
   color: var(--calcite-color-status-success);
+}
+
+/* ---------- emissions ---------- */
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bar {
+  height: 6px;
+  margin-top: 4px;
+  border-radius: 3px;
+  background: var(--calcite-color-foreground-3);
+  overflow: hidden;
+}
+.bar span {
+  display: block;
+  height: 100%;
+  border-radius: 0 3px 3px 0;
+}
+.levers {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 /* ---------- chart ---------- */
@@ -287,25 +314,15 @@ arcgis-scene {
 
 /* ---------- timeline dock ---------- */
 .dock-host {
-  position: absolute;
-  inset-inline: 16px;
-  bottom: 24px;
-  display: flex;
-  justify-content: center;
-  pointer-events: none;
+  display: block;
+  border-top: 1px solid var(--calcite-color-border-3);
+  background: var(--calcite-color-foreground-1);
 }
 .dock {
-  pointer-events: auto;
   display: flex;
   align-items: center;
   gap: 16px;
-  width: min(1000px, 100%);
-  padding: 10px 16px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--calcite-color-foreground-1) 88%, transparent);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--calcite-color-border-3);
-  box-shadow: 0 6px 24px rgb(0 0 0 / 0.25);
+  padding: 8px 16px;
 }
 .dock__controls,
 .dock__options {

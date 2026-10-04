@@ -30,27 +30,27 @@ export interface AppState {
 }
 
 export type StateKey = keyof AppState;
-type Listener = (state: AppState, changed: Set<StateKey>) => void;
+type Listener<S> = (state: S, changed: Set<keyof S>) => void;
 
 /**
  * Minimal observable store. Modules subscribe to the keys they care about;
  * nothing else in the app needs to know they exist.
  */
-export class Store {
-  private current: AppState;
-  private listeners = new Set<{ keys: Set<StateKey> | null; fn: Listener }>();
+export class Store<S extends object = AppState> {
+  private current: S;
+  private listeners = new Set<{ keys: Set<keyof S> | null; fn: Listener<S> }>();
 
-  constructor(initial: AppState) {
+  constructor(initial: S) {
     this.current = initial;
   }
 
-  get state(): Readonly<AppState> {
+  get state(): Readonly<S> {
     return this.current;
   }
 
-  set(patch: Partial<AppState>): void {
-    const changed = new Set<StateKey>();
-    for (const key of Object.keys(patch) as StateKey[]) {
+  set(patch: Partial<S>): void {
+    const changed = new Set<keyof S>();
+    for (const key of Object.keys(patch) as (keyof S)[]) {
       if (!Object.is(this.current[key], patch[key])) changed.add(key);
     }
     if (!changed.size) return;
@@ -66,7 +66,7 @@ export class Store {
    * Subscribe to changes of the given keys (or every change when keys is omitted).
    * Set `immediate` to run the listener once right away. Returns an unsubscribe function.
    */
-  on(keys: StateKey[] | null, fn: Listener, immediate = false): () => void {
+  on(keys: (keyof S)[] | null, fn: Listener<S>, immediate = false): () => void {
     const entry = { keys: keys ? new Set(keys) : null, fn };
     this.listeners.add(entry);
     if (immediate) fn(this.current, new Set(keys ?? []));

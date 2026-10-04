@@ -75,3 +75,10 @@ export function parseIsoDate(value: string): number {
 export function startOfLocalDay(t: number): number {
   return parseIsoDate(isoDate(t));
 }
+
+const hourFmt = new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, hour: "numeric", hourCycle: "h23" });
+
+/** Hour of day (0–23) in Jakarta. */
+export function localHour(t: number): number {
+  return Number(hourFmt.format(t)) % 24;
+}
