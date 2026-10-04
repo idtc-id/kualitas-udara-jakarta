@@ -5,7 +5,75 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Digital twin kualitas udara DKI Jakarta: polusi dan cuaca historis, real-time, dan prakiraan dalam 3D." />
     <title>Jakarta Air Twin</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%230072bc'/><path d='M7 18c4-5 7 3 11-2s5-1 7-3' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round'/></svg>" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./favicon.png" />
+    <link rel="apple-touch-icon" href="./favicon.png" />
+    <style>
+      .boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.25rem;
+        /* The logo is artwork on white, so the splash stays light in both themes. */
+        background: #fff;
+        color: #38506b;
+        font-size: 0.875rem;
+        z-index: 1000;
+      }
+
+      .boot__logo {
+        width: min(240px, 60vw);
+        height: auto;
+      }
+
+      .boot__bar {
+        position: relative;
+        width: min(220px, 55vw);
+        height: 3px;
+        border-radius: 2px;
+        background: #e3edf3;
+        overflow: hidden;
+      }
+
+      .boot__bar::after {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 40%;
+        border-radius: 2px;
+        background: linear-gradient(90deg, #0b3a73, #2bb5b0);
+        animation: boot-slide 1.2s ease-in-out infinite;
+      }
+
+      .boot__msg {
+        margin: 0;
+        text-align: center;
+        padding: 0 1rem;
+      }
+
+      @keyframes boot-slide {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(250%);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .boot__bar::after {
+          animation: none;
+          width: 100%;
+        }
+      }
+      body {
+        margin: 0;
+        background: #fff;
+      }
+    </style>
   </head>
   <body class="calcite-mode-dark">
     <calcite-shell>
@@ -30,7 +98,11 @@
       <footer slot="footer" id="dock" class="dock-host"></footer>
     </calcite-shell>
 
-    <div id="boot" class="boot">Memuat digital twin Jakarta…</div>
+    <div id="boot" class="boot">
+      <img class="boot__logo" src="./logo.png" alt="Indonesia Digital Twin Community" width="240" height="262" />
+      <div class="boot__bar" aria-hidden="true"></div>
+      <p id="boot-msg" class="boot__msg">Memuat digital twin Jakarta…</p>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

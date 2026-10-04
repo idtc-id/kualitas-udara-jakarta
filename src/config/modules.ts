@@ -15,6 +15,7 @@ import { createWindLayer } from "../layers/windLayer";
 import { createEmissionWidget } from "../emissions/emissionWidget";
 import { createEmissionsLayer } from "../emissions/emissionsLayer";
 import { mockAirQuality } from "../providers/airquality/mockAirQuality";
+import { createArchiveProvider } from "../providers/airquality/archiveProvider";
 import { openMeteoAirQuality } from "../providers/airquality/openMeteoAirQuality";
 import { createUdaraJakartaProvider } from "../providers/airquality/udaraJakarta";
 import { bmkgForecast } from "../providers/weather/bmkg";
@@ -32,6 +33,7 @@ const udaraJakarta = createUdaraJakartaProvider(import.meta.env.VITE_UDARA_JAKAR
 export function createRegistry(): ModuleRegistry {
   const airQualityProviders: AirQualityProvider[] = [
     ...(udaraJakarta ? [udaraJakarta] : []), // station measurements first
+    createArchiveProvider(appConfig.archiveUrl), // scheduled snapshots committed to the repo
     openMeteoAirQuality, // model: fills gaps and provides the forecast
     mockAirQuality, // synthetic fallback, only if everything above fails
   ];

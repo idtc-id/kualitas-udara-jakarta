@@ -362,17 +362,7 @@ arcgis-scene {
   display: none;
 }
 
-/* ---------- boot ---------- */
-.boot {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  background: var(--calcite-color-background);
-  color: var(--calcite-color-text-2);
-  font-size: var(--calcite-font-size-1);
-  z-index: 1000;
-}
+/* The boot splash styles live inline in index.html so they apply before this file loads. */
 
 @media (max-width: 900px) {
   .dock {

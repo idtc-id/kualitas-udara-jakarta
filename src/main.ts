@@ -105,6 +105,6 @@ async function bootstrap(): Promise<void> {
 
 bootstrap().catch((err) => {
   console.error(err);
-  const boot = document.getElementById("boot");
+  const boot = document.getElementById("boot-msg");
   if (boot) boot.textContent = `Gagal memuat aplikasi: ${err instanceof Error ? err.message : String(err)}`;
 });

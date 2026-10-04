@@ -27,6 +27,8 @@ export interface AppConfig {
   boundaryUrl: string;
   /** Activity data + emission factors for the carbon emission module. */
   emissionInventoryUrl: string;
+  /** Folder of the scheduled air-quality archive (see scripts/collect-archive.mjs). */
+  archiveUrl: string;
   /** Default basemap per theme (ArcGIS 3D basemaps include 3D buildings, labels and trees). */
   basemaps: { dark: string; light: string };
   /** Used when the 3D basemap cannot be loaded (e.g. no access); paired with buildings.fallback. */
@@ -54,6 +56,7 @@ export const appConfig: AppConfig = {
   gridCellSize: 0.012,
   boundaryUrl: "./data/dki-boundary.geojson",
   emissionInventoryUrl: "./data/emission-inventory.json",
+  archiveUrl: "./data/archive",
   basemaps: { dark: "dark-gray-3d", light: "gray-3d" },
   fallbackBasemaps: { dark: "dark-gray-vector", light: "gray-vector" },
   basemapOptions: [
