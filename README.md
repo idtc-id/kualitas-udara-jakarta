@@ -1,6 +1,6 @@
 # Jakarta Air Twin — Digital Twin Kualitas Udara DKI Jakarta
 
-Aplikasi web **digital twin** yang menampilkan polusi udara, cuaca, dan estimasi emisi karbon DKI Jakarta dalam 3D, dibangun dengan **[ArcGIS Maps SDK for JavaScript 5.1](https://developers.arcgis.com/javascript/latest/)** dan **[Calcite Design System](https://developers.arcgis.com/calcite-design-system/)**. Konsepnya terinspirasi dari [construction-timelapse](https://github.com/dchantlos/construction-timelapse): satu timeline yang memutar kota dari waktu ke waktu.
+Aplikasi web **digital twin** yang menampilkan polusi udara, cuaca, dan estimasi emisi karbon DKI Jakarta dalam 3D, dibangun dengan **[ArcGIS Maps SDK for JavaScript 5.1](https://developers.arcgis.com/javascript/latest/)** dan **[Calcite Design System](https://developers.arcgis.com/calcite-design-system/)**. 
 
 ![Overview](docs/screenshots/01-overview-dark.png)
 
@@ -168,8 +168,7 @@ Kendaraan listrik di skenario **memindahkan** emisi ke sektor listrik sesuai fak
 
 ## Roadmap
 
-Planning & progres: issue [#1 (epic)](https://github.com/geoholix/dt-airpolution/issues/1) dan sub-issue-nya. Backlog: integrasi OpenAQ/WAQI, data SPKU udara.jakarta.go.id, bangunan Jakarta Satu/Overture, backend proxy & arsip, forecast lanjutan, emisi gridded (Climate TRACE/EDGAR).
-
+Planning & progres: 
 ## Atribusi
 
 Data cuaca: **BMKG**. Kualitas udara: **Copernicus Atmosphere Monitoring Service** via **Open-Meteo.com** (CC BY 4.0). Bangunan: © kontributor **OpenStreetMap**, Esri. Peta & 3D: **Esri ArcGIS Maps SDK for JavaScript**.
