@@ -27,6 +27,8 @@ export interface AppState {
   loading: boolean;
   error: string | null;
   lastUpdated: number | null;
+  /** Load failures of layer modules, keyed by layer id (shown in the UI). */
+  layerErrors: Record<string, string>;
 }
 
 export type StateKey = keyof AppState;

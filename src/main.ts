@@ -40,6 +40,7 @@ async function bootstrap(): Promise<void> {
     loading: false,
     error: null,
     lastUpdated: null,
+    layerErrors: {},
   });
 
   document.title = appConfig.title;

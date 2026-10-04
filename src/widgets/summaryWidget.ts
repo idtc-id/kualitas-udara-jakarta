@@ -34,10 +34,11 @@ export const summaryWidget: WidgetModule = {
 
     const stations = new Map(config.stations.map((s) => [s.id, s]));
 
-    store.on(["airQuality", "weather", "timeIndex", "indicator", "selectedStationId", "error"], (s) => {
+    store.on(["airQuality", "weather", "timeIndex", "indicator", "selectedStationId", "error", "layerErrors"], (s) => {
       notice.open = !!s.airQuality?.synthetic;
-      error.open = !!s.error;
-      errorMsg.textContent = s.error ?? "";
+      const messages = [s.error, ...Object.values(s.layerErrors)].filter(Boolean);
+      error.open = messages.length > 0;
+      errorMsg.textContent = messages.join(" · ");
 
       const sum = citySummary(s);
       const u = indicatorUnit(s.indicator);

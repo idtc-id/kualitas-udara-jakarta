@@ -58,7 +58,15 @@ export function createBuildingsLayer(): LayerModule {
       }
       layer.visible = store.state.layerVisibility.buildings ?? true;
       map.add(layer, 0);
-      layer.load().catch((err) => console.warn("Building layer failed to load", err));
+      layer.load().catch((err) => {
+        console.warn("Building layer failed to load", err);
+        store.set({
+          layerErrors: {
+            ...store.state.layerErrors,
+            buildings: "Bangunan 3D gagal dimuat. Periksa koneksi ke ArcGIS Online (arcgis.com) atau sumber bangunan di appConfig.buildings.",
+          },
+        });
+      });
     },
 
     setVisible(visible) {

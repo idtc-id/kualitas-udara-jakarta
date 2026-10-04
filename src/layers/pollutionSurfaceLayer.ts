@@ -89,7 +89,8 @@ export function createPollutionSurfaceLayer(): LayerModule {
           const value = points.length ? idw(cell.x, cell.y, points) : null;
           const index = value == null ? null : s.indicator === "ispu" ? value : subIndex(s.indicator, value);
           const cat = categoryOf(index);
-          const next = symbol(cat?.color ?? null, (index ?? 0) * 3);
+          // ~1.5 m per index point keeps the volume below most high-rise roofs.
+          const next = symbol(cat?.color ?? null, (index ?? 0) * 1.5);
           if (cell.graphic.symbol !== next) cell.graphic.symbol = next;
         }
       };
