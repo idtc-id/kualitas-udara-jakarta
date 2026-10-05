@@ -131,6 +131,7 @@ export function createStationsLayer(): LayerModule {
       });
 
       view.on("click", async (event) => {
+        if (store.state.mapTool) return; // another tool owns map clicks
         const hit = await view.hitTest(event, { include: [columns, labels] });
         const graphicHit = hit.results.find((r) => r.type === "graphic");
         const id = graphicHit && "graphic" in graphicHit ? graphicHit.graphic.attributes?.stationId : null;

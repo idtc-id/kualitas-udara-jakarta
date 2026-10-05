@@ -43,6 +43,7 @@ async function bootstrap(): Promise<void> {
     error: null,
     lastUpdated: null,
     layerErrors: {},
+    mapTool: null,
   });
 
   document.title = appConfig.title;
@@ -83,7 +84,11 @@ async function bootstrap(): Promise<void> {
 
   const data = new DataService(appConfig, store, registry);
   const ctx: AppContext = { config: appConfig, store, data, view, map };
-  if (import.meta.env.DEV) Object.assign(window, { __twin: ctx });
+  if (import.meta.env.DEV) {
+    const [{ windStore }, { greeningStore }] = await Promise.all([import("./wind/state"), import("./greening/state")]);
+    Object.assign(window, { __twin: { ...ctx, windStore, greeningStore } });
+  }
+  store.on(["mapTool"], (s) => sceneEl.classList.toggle("tool-active", !!s.mapTool));
 
   for (const layer of registry.layers) {
     try {

@@ -1,5 +1,6 @@
 import type { WidgetModule } from "../core/modules";
 import { formatDateTime } from "../core/time";
+import { greeningStore, greeningTotals } from "../greening/state";
 import { h } from "../ui/dom";
 import { BASELINE, formatTonnes, hourlyRate, SECTOR_COLORS, SECTORS, sumTotals, type Scenario } from "./model";
 import { emissionStore, loadInventory } from "./state";
@@ -34,6 +35,7 @@ export function createEmissionWidget(inventoryUrl: string): WidgetModule {
       const total = h("span", { class: "hero__value" });
       const delta = h("div", { class: "hero__label" });
       const rateNow = h("div", { class: "hero__label" });
+      const net = h("div", { class: "hero__meta" });
       const sectors = h("table", { class: "trend-table" });
       const zones = h("table", { class: "trend-table" });
 
@@ -81,6 +83,15 @@ export function createEmissionWidget(inventoryUrl: string): WidgetModule {
         delta.textContent = `juta t CO₂e/tahun · ${Math.abs(change) < 0.0005 ? "baseline" : `${change < 0 ? "−" : "+"}${Math.abs(change * 100).toFixed(1)}% vs baseline`}`;
         const rate = sumTotals(hourlyRate(result.city, t));
         rateNow.textContent = `Laju pada ${formatDateTime(t)}: ${formatTonnes(rate)} CO₂e/jam`;
+        const trees = greeningTotals(greeningStore.state);
+        net.replaceChildren(
+          ...(trees.trees
+            ? [
+                h("div", {}, h("span", { class: "muted" }, `Penyerapan ${trees.trees.toLocaleString("id-ID")} pohon (simulasi) `), h("strong", {}, `−${formatTonnes(trees.co2TonnesPerYear)}`)),
+                h("div", {}, h("span", { class: "muted" }, "Emisi bersih "), h("strong", {}, `${formatTonnes(result.total - trees.co2TonnesPerYear)} CO₂e/thn`)),
+              ]
+            : [h("div", { class: "muted small" }, "Tambahkan pohon di widget Simulasi pohon untuk melihat emisi bersih.")]),
+        );
 
         const max = Math.max(...SECTORS.map((s) => result.city[s.id]));
         sectors.replaceChildren(
@@ -120,13 +131,14 @@ export function createEmissionWidget(inventoryUrl: string): WidgetModule {
 
       emissionStore.on(["inventory", "result", "error"], render, true);
       store.on(["timeIndex", "airQuality", "theme"], render);
+      greeningStore.on(["plantings", "ageYears", "species"], render);
 
       return h(
         "div",
         { class: "widget" },
         status,
         toggle,
-        h("div", { class: "hero" }, h("div", { class: "hero__number" }, total), delta, rateNow),
+        h("div", { class: "hero" }, h("div", { class: "hero__number" }, total), delta, rateNow, net),
         h("div", { class: "section-title" }, "Per sektor"),
         sectors,
         h("div", { class: "section-title" }, "Per kota administrasi"),

@@ -12,6 +12,10 @@ import { createSpaceTimeCubeLayer } from "../layers/spaceTimeCubeLayer";
 import { createPollutionSurfaceLayer } from "../layers/pollutionSurfaceLayer";
 import { createStationsLayer } from "../layers/stationsLayer";
 import { createWindLayer } from "../layers/windLayer";
+import { createTreesLayer } from "../greening/treesLayer";
+import { createTreesWidget } from "../greening/treesWidget";
+import { createFlowLayer } from "../wind/flowLayer";
+import { windWidget } from "../wind/windWidget";
 import { createEmissionWidget } from "../emissions/emissionWidget";
 import { createEmissionsLayer } from "../emissions/emissionsLayer";
 import { mockAirQuality } from "../providers/airquality/mockAirQuality";
@@ -48,7 +52,9 @@ export function createRegistry(): ModuleRegistry {
     createBuildingsLayer(),
     createPollutionSurfaceLayer(),
     createStationsLayer(),
+    createFlowLayer(),
     createWindLayer(),
+    createTreesLayer(appConfig.treeSpeciesUrl),
     createSpaceTimeCubeLayer(),
     createEmissionsLayer(appConfig.emissionInventoryUrl),
     createAtmosphereLayer(),
@@ -58,6 +64,8 @@ export function createRegistry(): ModuleRegistry {
   const widgets: WidgetModule[] = [
     chartWidget,
     weatherWidget,
+    windWidget,
+    createTreesWidget(appConfig.treeSpeciesUrl),
     trendWidget,
     createEmissionWidget(appConfig.emissionInventoryUrl),
     createLayersWidget(layers),

@@ -21,6 +21,8 @@ Aplikasi web **digital twin** yang menampilkan polusi udara, cuaca, dan estimasi
 | **Emisi karbon** | Estimasi CO₂e *bottom-up* per sektor & kota administrasi, laju per jam, kolom 3D bertumpuk, **simulasi skenario** (EV, pengurangan km, energi terbarukan, sampah) |
 | **Cuaca BMKG** | Prakiraan per kota administrasi pada jam aktif (ikon & deskripsi BMKG) |
 | **Grafik** | Time series polutan per stasiun + variabel cuaca (termasuk tinggi lapisan batas/PBL), garis ambang ISPU, area prakiraan, tooltip |
+| **Simulasi angin** | Animasi partikel seperti windy.com (FlowRenderer ArcGIS) dari data angin **BMKG** (jam prakiraan) / Open-Meteo (historis). Angin **terhalang gedung**: nol di dalam gedung, zona wake di belakang gedung, dibelokkan di sekitar gedung. Gedung dibaca dari layer 3D yang tampil + **gedung what-if** yang ditaruh dengan klik |
+| **Simulasi pohon** | Tanam pohon per klik atau massal per kota (7 spesies). Hitung serapan CO₂ & PM2.5 sesuai usia, **emisi bersih** di modul emisi; pohon menjadi penghalang angin berpori. Ekspor GeoJSON |
 | **Basemap 3D** | Basemap 3D ArcGIS (bangunan, label, pohon 3D) dengan pemilih basemap; fallback otomatis ke 2D + OSM 3D Buildings |
 | **Tema** | Gelap/terang (Calcite) |
 
@@ -81,6 +83,8 @@ src/
 ├── layers/                # modul visual di scene 3D
 ├── widgets/               # panel Calcite
 ├── emissions/             # fitur emisi karbon (model, state, layer, widget), mandiri
+├── wind/                  # simulasi angin: model medan angin (worker), penghalang, FlowRenderer, widget
+├── greening/              # simulasi pohon: spesies, state, layer pohon 3D, widget
 └── ui/                    # shell, dock timeline, grafik SVG
 ```
 
@@ -155,6 +159,24 @@ export const myWidget: WidgetModule = {
 ### Fitur besar (contoh: emisi)
 
 Fitur yang punya state sendiri dapat dibuat sebagai folder mandiri dengan `Store<StateKhusus>` sendiri (lihat `src/emissions/`), lalu hanya layer & widget-nya yang didaftarkan di registry.
+
+## Simulasi angin
+
+![Simulasi angin](docs/screenshots/05-simulasi-angin.png)
+
+1. Angin 10 m di setiap titik cuaca (BMKG untuk jam prakiraan, Open-Meteo untuk jam historis) diubah menjadi komponen u/v lalu diinterpolasi (IDW) ke grid.
+2. Grid: **kota** (sel 60 m) saat kamera jauh, **detail** (sel ~3–10 m, maks. 640×640) di sekitar kamera saat ketinggian kamera < 6 km.
+3. Penghalang: footprint + tinggi gedung dari scene layer 3D yang tampil (`SceneLayerView.queryFeatures` → bounding box mesh), gedung what-if, dan tajuk pohon (berpori).
+4. Model (bukan CFD): angin = 0 di dalam gedung; reduksi wake `1 / (1 + 2,5 · max(H/d))` dengan melihat ke arah datang angin sampai 600 m; komponen yang menabrak gedung dibelokkan; di dalam tajuk pohon angin melemah.
+5. Hasilnya menjadi raster in-memory `vector-uv` untuk `ImageryTileLayer` + `FlowRenderer` (animasi di GPU). Perhitungan berjalan di Web Worker.
+
+Grid detail membutuhkan gedung yang sudah dimuat oleh view, jadi zoom ke kawasan (mis. Sudirman–Thamrin) agar efek gedung terlihat.
+
+## Simulasi pohon
+
+![Simulasi pohon](docs/screenshots/06-simulasi-pohon.png)
+
+Serapan = jumlah pohon × serapan pohon dewasa × faktor pertumbuhan `1 − e^(−3·usia/umur_dewasa)`. Nilai per spesies di `public/data/tree-species.json` adalah **asumsi** dan perlu diganti dengan data penelitian lokal. Penanaman disimpan di browser (localStorage) dan bisa diekspor ke GeoJSON.
 
 ## Modul emisi karbon
 

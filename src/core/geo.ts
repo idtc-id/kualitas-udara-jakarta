@@ -46,3 +46,19 @@ export async function loadBoundaryRing(url: string): Promise<Ring | null> {
   }
   return null;
 }
+
+const R = 6378137;
+
+/** WGS84 → Web Mercator (metres). */
+export function toMercator(lon: number, lat: number): [number, number] {
+  const x = (lon * Math.PI * R) / 180;
+  const y = R * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+  return [x, y];
+}
+
+/** Web Mercator (metres) → WGS84. */
+export function fromMercator(x: number, y: number): [number, number] {
+  const lon = (x / R) * (180 / Math.PI);
+  const lat = (2 * Math.atan(Math.exp(y / R)) - Math.PI / 2) * (180 / Math.PI);
+  return [lon, lat];
+}

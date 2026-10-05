@@ -36,9 +36,9 @@ export function createWindLayer(): LayerModule {
 
   return {
     id: "wind",
-    title: "Angin",
-    description: "Arah & kecepatan angin (interpolasi dari titik cuaca).",
-    visibleByDefault: true,
+    title: "Panah angin",
+    description: "Arah & kecepatan angin sebagai panah statis (interpolasi dari titik cuaca).",
+    visibleByDefault: false,
     legend: SPEED_CLASSES.map((c) => ({ label: c.label, icon: "arrow-up" })),
 
     async init({ config, map, store }) {

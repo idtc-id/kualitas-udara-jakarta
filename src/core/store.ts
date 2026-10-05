@@ -31,6 +31,8 @@ export interface AppState {
   lastUpdated: number | null;
   /** Load failures of layer modules, keyed by layer id (shown in the UI). */
   layerErrors: Record<string, string>;
+  /** Active map click tool (e.g. "plant-trees", "place-building"); null = default (select station). */
+  mapTool: string | null;
 }
 
 export type StateKey = keyof AppState;
