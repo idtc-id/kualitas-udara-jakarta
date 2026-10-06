@@ -1,4 +1,5 @@
 import { Store } from "../core/store";
+import type { ProbeLevel } from "./wind3d";
 
 /** A hypothetical building placed by the user to test its effect on the wind. */
 export interface WhatIfBuilding {
@@ -14,15 +15,29 @@ export interface WindStats {
   speedRatio: number;
   /** Share of open cells where wind is below half the free-stream speed. */
   calmShare: number;
-  /** Free-stream mean speed (m/s). */
+  /** Free-stream mean speed (m/s) at the animated level. */
   freeSpeed: number;
   buildingCells: number;
+}
+
+export interface WindProbe {
+  longitude: number;
+  latitude: number;
+  rows: ProbeLevel[];
+  /** Timeline time the probe was computed for. */
+  time: number;
 }
 
 export interface WindState {
   buildingEffect: boolean;
   /** Use a fine local grid around the camera when zoomed in. */
   detail: boolean;
+  /** Height (m) of the animated particle layer. */
+  animLevel: number;
+  /** Show traced 3D streamlines coloured by disturbance. */
+  streamlines: boolean;
+  /** Animate a pulse travelling along the 3D streamlines. */
+  pulse: boolean;
   whatIf: WhatIfBuilding[];
   placeHeight: number;
   placeSize: number;
@@ -32,12 +47,19 @@ export interface WindState {
   stats: WindStats | null;
   /** Number of real buildings read from the scene for the current grid. */
   sceneBuildings: number;
+  streamlineCount: number;
   gridInfo: string;
+  probe: WindProbe | null;
+  /** Level (m) shown in the probe chart. */
+  probeLevel: number;
 }
 
 export const windStore = new Store<WindState>({
   buildingEffect: true,
   detail: true,
+  animLevel: 10,
+  streamlines: true,
+  pulse: true,
   whatIf: [],
   placeHeight: 150,
   placeSize: 50,
@@ -46,5 +68,23 @@ export const windStore = new Store<WindState>({
   trailLength: 400,
   stats: null,
   sceneBuildings: 0,
+  streamlineCount: 0,
   gridInfo: "",
+  probe: null,
+  probeLevel: 10,
 });
+
+/**
+ * Disturbance colour scale (weak → strong), matching the "wind fluid
+ * disturbance" convention of city wind simulations: violet/blue = flow close
+ * to the undisturbed wind, red = strongly slowed or redirected by buildings.
+ */
+export const DISTURBANCE_STOPS: { value: number; color: string; label?: string }[] = [
+  { value: 0, color: "#6a3df0", label: "Gangguan lemah" },
+  { value: 0.15, color: "#2f63ff" },
+  { value: 0.3, color: "#12b8e6" },
+  { value: 0.45, color: "#22c55e", label: "Sedang" },
+  { value: 0.6, color: "#e6e01a" },
+  { value: 0.8, color: "#ff8a1a" },
+  { value: 1, color: "#ff2a2a", label: "Gangguan kuat" },
+];

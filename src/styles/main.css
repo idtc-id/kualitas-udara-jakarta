@@ -414,3 +414,54 @@ arcgis-scene {
     --calcite-segmented-control-item-text-display: none;
   }
 }
+
+/* ---------- wind disturbance legend ---------- */
+.wind-legend {
+  position: absolute;
+  right: 16px;
+  bottom: 24px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--calcite-color-foreground-1) 88%, transparent);
+  border: 1px solid var(--calcite-color-border-3);
+  font-size: var(--calcite-font-size--2);
+  color: var(--calcite-color-text-2);
+  pointer-events: none;
+}
+.wind-legend[hidden] {
+  display: none;
+}
+.wind-legend__title {
+  font-weight: var(--calcite-font-weight-medium);
+  color: var(--calcite-color-text-1);
+  margin-bottom: 6px;
+}
+.wind-legend__body {
+  display: flex;
+  gap: 8px;
+}
+.wind-legend__bar {
+  width: 14px;
+  height: 110px;
+  border-radius: 3px;
+}
+.wind-legend__labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.wind-gradient {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 6px;
+  align-items: center;
+  font-size: var(--calcite-font-size--2);
+  color: var(--calcite-color-text-3);
+}
+.wind-gradient div {
+  height: 8px;
+  border-radius: 4px;
+}
+.probe[hidden] {
+  display: none;
+}

@@ -38,14 +38,24 @@ export interface WindFieldResult {
 }
 
 const WAKE_STRENGTH = 2.5;
+/** Urban aerodynamic roughness length (m) for the logarithmic wind profile. */
+const Z0 = 0.5;
+
+/** Wind speed at height z relative to the 10 m reference (log law), floored at 2 m. */
+export function profileFactor(z: number): number {
+  return Math.log(Math.max(2, z) / Z0) / Math.log(10 / Z0);
+}
 const WAKE_DISTANCE_M = 600;
 const MAX_WAKE_SAMPLES = 80;
 
-function rasterize(grid: Grid, obstacles: Obstacle[]) {
+/** Rasterize obstacles taller than `level`; heights are stored relative to that level. */
+export function rasterize(grid: Grid, obstacles: Obstacle[], level = 0) {
   const { width: w, height: h, cellSize: cs, xmin, ymax } = grid;
   const H = new Float32Array(w * h);
   const P = new Float32Array(w * h);
-  for (const o of obstacles) {
+  for (const src of obstacles) {
+    if (src.height <= level) continue;
+    const o = level ? { ...src, height: src.height - level } : src;
     const i0 = Math.max(0, Math.floor((o.xmin - xmin) / cs));
     const i1 = Math.min(w - 1, Math.floor((o.xmax - xmin) / cs));
     const j0 = Math.max(0, Math.floor((ymax - o.ymax) / cs));
@@ -94,15 +104,33 @@ function blur(src: Float32Array, w: number, h: number, r: number): Float32Array 
   return out;
 }
 
-export function computeWindField(grid: Grid, base: BasePoint[], obstacles: Obstacle[], buildingEffect: boolean): WindFieldResult {
+/**
+ * Wind field at `level` metres above ground. Only obstacles taller than the
+ * level block the flow; the free-stream speed follows the log profile.
+ */
+export function computeWindField(
+  grid: Grid,
+  base: BasePoint[],
+  obstacles: Obstacle[],
+  buildingEffect: boolean,
+  level = 10,
+  /** Precomputed unscaled 10 m free-stream field (skips the IDW when computing many levels). */
+  freeRef?: { u: Float32Array; v: Float32Array },
+): WindFieldResult {
   const { width: w, height: h, cellSize: cs, xmin, ymax } = grid;
+  const pf = profileFactor(level);
   const n = w * h;
   const u = new Float32Array(n);
   const v = new Float32Array(n);
   const mask = new Uint8Array(n).fill(1);
 
   // 1. Free-stream field (IDW, power 2).
-  for (let j = 0; j < h; j++) {
+  if (freeRef) {
+    for (let k = 0; k < n; k++) {
+      u[k] = freeRef.u[k] * pf;
+      v[k] = freeRef.v[k] * pf;
+    }
+  } else for (let j = 0; j < h; j++) {
     const y = ymax - (j + 0.5) * cs;
     for (let i = 0; i < w; i++) {
       const x = xmin + (i + 0.5) * cs;
@@ -116,8 +144,8 @@ export function computeWindField(grid: Grid, base: BasePoint[], obstacles: Obsta
         sv += wt * p.v;
         sw += wt;
       }
-      u[j * w + i] = su / sw;
-      v[j * w + i] = sv / sw;
+      u[j * w + i] = (su / sw) * pf;
+      v[j * w + i] = (sv / sw) * pf;
     }
   }
 
@@ -127,13 +155,13 @@ export function computeWindField(grid: Grid, base: BasePoint[], obstacles: Obsta
   let calm = 0;
   let buildingCells = 0;
 
-  if (!buildingEffect || !obstacles.length) {
+  if (!buildingEffect || !obstacles.some((o) => o.height > level)) {
     for (let k = 0; k < n; k++) freeSum += Math.hypot(u[k], v[k]);
     const freeSpeed = freeSum / n;
     return { u, v, mask, stats: { speedRatio: 1, calmShare: 0, freeSpeed, buildingCells: 0 } };
   }
 
-  const { H, P } = rasterize(grid, obstacles);
+  const { H, P } = rasterize(grid, obstacles, level);
   const Hb = blur(H, w, h, Math.max(1, Math.round(20 / cs)));
   const steps = Math.ceil(WAKE_DISTANCE_M / cs);
   const stride = Math.max(1, Math.ceil(steps / MAX_WAKE_SAMPLES));

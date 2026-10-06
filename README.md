@@ -21,7 +21,7 @@ Aplikasi web **digital twin** yang menampilkan polusi udara, cuaca, dan estimasi
 | **Emisi karbon** | Estimasi CO₂e *bottom-up* per sektor & kota administrasi, laju per jam, kolom 3D bertumpuk, **simulasi skenario** (EV, pengurangan km, energi terbarukan, sampah) |
 | **Cuaca BMKG** | Prakiraan per kota administrasi pada jam aktif (ikon & deskripsi BMKG) |
 | **Grafik** | Time series polutan per stasiun + variabel cuaca (termasuk tinggi lapisan batas/PBL), garis ambang ISPU, area prakiraan, tooltip |
-| **Simulasi angin** | Animasi partikel seperti windy.com (FlowRenderer ArcGIS) dari data angin **BMKG** (jam prakiraan) / Open-Meteo (historis). Angin **terhalang gedung**: nol di dalam gedung, zona wake di belakang gedung, dibelokkan di sekitar gedung. Gedung dibaca dari layer 3D yang tampil + **gedung what-if** yang ditaruh dengan klik |
+| **Simulasi angin 3D** | Streamline 3D di antara & di atas gedung berwarna **tingkat gangguan** (seperti Tokyo Digital Twin), pulsa animasi, partikel FlowRenderer per ketinggian, **probe titik** per ketinggian. Data angin **BMKG** (prakiraan) / Open-Meteo (historis); gedung dari layer 3D + **gedung what-if** |
 | **Simulasi pohon** | Tanam pohon per klik atau massal per kota (7 spesies). Hitung serapan CO₂ & PM2.5 sesuai usia, **emisi bersih** di modul emisi; pohon menjadi penghalang angin berpori. Ekspor GeoJSON |
 | **Basemap 3D** | Basemap 3D ArcGIS (bangunan, label, pohon 3D) dengan pemilih basemap; fallback otomatis ke 2D + OSM 3D Buildings |
 | **Tema** | Gelap/terang (Calcite) |
@@ -160,17 +160,20 @@ export const myWidget: WidgetModule = {
 
 Fitur yang punya state sendiri dapat dibuat sebagai folder mandiri dengan `Store<StateKhusus>` sendiri (lihat `src/emissions/`), lalu hanya layer & widget-nya yang didaftarkan di registry.
 
-## Simulasi angin
+## Simulasi angin 3D
 
-![Simulasi angin](docs/screenshots/05-simulasi-angin.png)
+![Simulasi angin 3D](docs/screenshots/05-simulasi-angin.png)
 
-1. Angin 10 m di setiap titik cuaca (BMKG untuk jam prakiraan, Open-Meteo untuk jam historis) diubah menjadi komponen u/v lalu diinterpolasi (IDW) ke grid.
-2. Grid: **kota** (sel 60 m) saat kamera jauh, **detail** (sel ~3–10 m, maks. 640×640) di sekitar kamera saat ketinggian kamera < 6 km.
-3. Penghalang: footprint + tinggi gedung dari scene layer 3D yang tampil (`SceneLayerView.queryFeatures` → bounding box mesh), gedung what-if, dan tajuk pohon (berpori).
-4. Model (bukan CFD): angin = 0 di dalam gedung; reduksi wake `1 / (1 + 2,5 · max(H/d))` dengan melihat ke arah datang angin sampai 600 m; komponen yang menabrak gedung dibelokkan; di dalam tajuk pohon angin melemah.
-5. Hasilnya menjadi raster in-memory `vector-uv` untuk `ImageryTileLayer` + `FlowRenderer` (animasi di GPU). Perhitungan berjalan di Web Worker.
+Terinspirasi tampilan angin [Tokyo Digital Twin](https://3dview.tokyo-digitaltwin.metro.tokyo.lg.jp/): streamline 3D yang mengalir di antara dan di atas gedung, diwarnai **tingkat gangguan** (ungu/biru = lemah, merah = kuat).
 
-Grid detail membutuhkan gedung yang sudah dimuat oleh view, jadi zoom ke kawasan (mis. Sudirman–Thamrin) agar efek gedung terlihat.
+1. **Data angin**: angin 10 m di setiap titik cuaca (BMKG untuk jam prakiraan, Open-Meteo untuk jam historis) → komponen u/v → interpolasi IDW.
+2. **Medan berlapis**: dihitung pada 7 ketinggian (2, 10, 25, 50, 80, 120, 180 m) dengan profil logaritmik (z₀ = 0,5 m). Pada setiap lapis hanya gedung yang lebih tinggi dari lapis itu yang menghalangi: angin 0 di dalam gedung, wake `1 / (1 + 2,5 · max((H − z)/d))` di belakang gedung (hingga 600 m), komponen yang menabrak gedung dibelokkan, tajuk pohon memperlambat angin.
+3. **Streamline 3D**: partikel ditelusuri melalui medan berlapis; naik saat gedung yang lebih tinggi ada di depan, melewati atap, lalu kembali ke ketinggian awal. Setiap segmen diwarnai **gangguan** = |v − v_bebas| / |v_bebas| (gabungan perlambatan dan pembelokan). Pulsa terang bergerak sepanjang garis.
+4. **Partikel animasi** (FlowRenderer pada raster `vector-uv` in-memory) pada ketinggian pilihan, diwarnai relatif terhadap kecepatan angin bebas.
+5. **Probe titik**: klik di peta → kecepatan, arah, dan gangguan per ketinggian + grafik estimasi kecepatan lokal sepanjang timeline.
+6. **Gedung**: footprint + tinggi dari scene layer 3D yang tampil (`SceneLayerView.queryFeatures` → bounding box mesh), ditambah gedung what-if (klik di peta).
+
+Grid kota (sel 60 m) saat kamera jauh; grid detail (sel ~3–10 m, medan 3D ~300²) saat ketinggian kamera < 6 km. Semua perhitungan berjalan di Web Worker. Ini model diagnostik cepat, **bukan CFD**; untuk kajian desain gunakan hasil CFD (mis. OpenFOAM) yang dapat dimuat sebagai raster `vector-uv` lewat jalur yang sama.
 
 ## Simulasi pohon
 
