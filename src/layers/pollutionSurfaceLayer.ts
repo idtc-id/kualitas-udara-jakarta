@@ -13,7 +13,7 @@ import { readingsAt } from "../core/selectors";
  * coloured by ISPU category and extruded by its index.
  */
 export function createPollutionSurfaceLayer(): LayerModule {
-  const layer = new GraphicsLayer({ title: "Permukaan polusi (interpolasi)", elevationInfo: { mode: "on-the-ground" } });
+  const layer = new GraphicsLayer({ title: "Indeks permukaan polusi (interpolasi)", elevationInfo: { mode: "on-the-ground" } });
   const cache = new Map<string, PolygonSymbol3D>();
   let opacity = 0.3;
   let render: () => void = () => {};
@@ -35,8 +35,8 @@ export function createPollutionSurfaceLayer(): LayerModule {
 
   return {
     id: "surface",
-    title: "Permukaan polusi",
-    description: "Interpolasi IDW antar stasiun; tinggi volume sesuai indeks.",
+    title: "Indeks permukaan polusi",
+    description: "Interpolasi IDW antar stasiun; tinggi volume = indeks (bukan ketebalan lapisan polusi).",
     visibleByDefault: true,
     controls: [
       {

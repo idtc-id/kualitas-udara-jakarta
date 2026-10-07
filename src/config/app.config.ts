@@ -53,7 +53,7 @@ const env = import.meta.env;
 export const appConfig: AppConfig = {
   title: "Jakarta Air Twin",
   subtitle: "Digital twin kualitas udara DKI Jakarta",
-  camera: { longitude: 106.83, latitude: -6.43, z: 14000, heading: 8, tilt: 62 },
+  camera: { longitude: 106.8272, latitude: -6.1875, z: 350, heading: 0, tilt: 80 },
   extent: [106.68, -6.375, 106.98, -6.085],
   gridCellSize: 0.012,
   boundaryUrl: "./data/dki-boundary.geojson",

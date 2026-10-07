@@ -65,7 +65,7 @@ const disturbanceVariable = () => ({
  * visible 3D layers, what-if buildings and planted trees.
  */
 export function createFlowLayer(): LayerModule {
-  let visible = true;
+  let visible = false;
   let flow: ImageryTileLayer | null = null;
   let lines: FeatureLayer | null = null;
   let pulse: FeatureLayer | null = null;
@@ -88,7 +88,7 @@ export function createFlowLayer(): LayerModule {
     id: "wind-flow",
     title: "Simulasi angin 3D",
     description: "Partikel & streamline 3D berwarna tingkat gangguan angin oleh gedung. Data BMKG (prakiraan) / Open-Meteo (historis).",
-    visibleByDefault: true,
+    visibleByDefault: false,
     legend: DISTURBANCE_STOPS.filter((s) => s.label).map((s) => ({ label: s.label!, color: s.color })),
 
     init({ map, view, store, config }) {

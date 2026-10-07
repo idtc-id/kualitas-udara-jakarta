@@ -351,6 +351,9 @@ arcgis-scene {
 }
 
 /* ---------- timeline dock ---------- */
+.dock-host[hidden] {
+  display: none;
+}
 .dock-host {
   display: block;
   border-top: 1px solid var(--calcite-color-border-3);

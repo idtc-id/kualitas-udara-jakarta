@@ -9,9 +9,9 @@ import type { AppState } from "../core/store";
 import { formatShortDate, formatTime } from "../core/time";
 import { autoBinHours, binTimes } from "../core/trend";
 
-const SLICE_HEIGHT = 120; // metres per time bin
-const BASE = 150; // lift above ground so the cube clears low buildings
-const SIZE = 700; // metres
+const SLICE_HEIGHT = 5; // metres per time bin (<= 40 bins, so the stack stays under ~200 m like the surrounding buildings)
+const BASE = 15; // small lift above ground
+const SIZE = 50; // metres
 
 /**
  * Space-time cube: each station becomes a vertical stack of voxels. Height =

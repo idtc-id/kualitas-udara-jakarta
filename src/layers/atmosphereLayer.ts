@@ -36,25 +36,38 @@ export function weatherFor(weather: WeatherSample | null, pm25: number | null): 
   return { type: "sunny", cloudCover: round1(cc) };
 }
 
-export function createAtmosphereLayer(): LayerModule {
-  let apply: (enabled: boolean) => void = () => {};
+/** Fixed daylight used when time-of-day lighting is off: 12:00 WIB (05:00 UTC) of the timeline's day. */
+function noonOf(t: number): Date {
+  const d = new Date(t);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours() >= 17 ? 29 : 5));
+}
 
-  return {
+/**
+ * Two independent switches share the SceneView environment:
+ *  - "atmosphere": rain/cloud/haze effects from weather and PM2.5
+ *  - "daylight": sun position follows the timeline (dark at night); off = fixed midday light
+ * Both default to off so the scene opens bright and unobstructed.
+ */
+export function createAtmosphereLayers(): LayerModule[] {
+  let weatherOn = false;
+  let timeOn = false;
+  let update: () => void = () => {};
+
+  const atmosphere: LayerModule = {
     id: "atmosphere",
-    title: "Atmosfer & cahaya",
-    description: "Matahari mengikuti waktu; hujan/awan dari data cuaca; kabut dari PM2.5. Efek cuaca tampil saat kamera dekat permukaan.",
-    visibleByDefault: true,
+    title: "Atmosfer (cuaca & kabut)",
+    description: "Hujan/awan dari data cuaca; kabut dari PM2.5. Efek cuaca tampil saat kamera dekat permukaan.",
+    visibleByDefault: false,
 
     init({ view, store }) {
-      let enabled = store.state.layerVisibility.atmosphere ?? true;
       let lastKey = "";
       view.environment.lighting = { type: "sun", directShadowsEnabled: true, cameraTrackingEnabled: false };
 
-      const update = () => {
+      update = () => {
         const s = store.state;
         const t = s.airQuality?.times[s.timeIndex] ?? Date.now();
-        (view.environment.lighting as SunLighting).date = new Date(t);
-        const setting: WeatherSetting = enabled
+        (view.environment.lighting as SunLighting).date = timeOn ? new Date(t) : noonOf(t);
+        const setting: WeatherSetting = weatherOn
           ? weatherFor(cityWeather(s), average(readingsAt(s).map((r) => r.concentrations.pm2_5 ?? null)))
           : { type: "sunny", cloudCover: 0.2 };
         const key = JSON.stringify(setting);
@@ -63,16 +76,26 @@ export function createAtmosphereLayer(): LayerModule {
           view.environment.weather = setting;
         }
       };
-
-      apply = (value) => {
-        enabled = value;
-        update();
-      };
-      store.on(["airQuality", "weather", "timeIndex"], update, true);
+      store.on(["airQuality", "weather", "timeIndex"], () => update(), true);
     },
 
     setVisible(visible) {
-      apply(visible);
+      weatherOn = visible;
+      update();
     },
   };
+
+  const daylight: LayerModule = {
+    id: "daylight",
+    title: "Pencahayaan mengikuti waktu",
+    description: "Matahari & bayangan mengikuti jam di timeline (gelap saat malam). Mati = cahaya siang tetap.",
+    visibleByDefault: false,
+    init() {},
+    setVisible(visible) {
+      timeOn = visible;
+      update();
+    },
+  };
+
+  return [atmosphere, daylight];
 }

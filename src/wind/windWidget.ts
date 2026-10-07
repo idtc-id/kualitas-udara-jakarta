@@ -38,7 +38,7 @@ export const windWidget: WidgetModule = {
 
   create({ store, config }) {
     mountMapLegend(
-      () => store.state.layerVisibility["wind-flow"] ?? true,
+      () => store.state.layerVisibility["wind-flow"] ?? false,
       (fn) => store.on(["layerVisibility"], fn, true),
     );
 
@@ -49,8 +49,8 @@ export const windWidget: WidgetModule = {
       return { sw, row: h("div", { class: "switch-row" }, sw, h("span", {}, label)) };
     };
 
-    const sim = toggle("Tampilkan simulasi angin", true, (v) => store.set({ layerVisibility: { ...store.state.layerVisibility, "wind-flow": v } }));
-    store.on(["layerVisibility"], (s) => (sim.sw.checked = s.layerVisibility["wind-flow"] ?? true), true);
+    const sim = toggle("Tampilkan simulasi angin", false, (v) => store.set({ layerVisibility: { ...store.state.layerVisibility, "wind-flow": v } }));
+    store.on(["layerVisibility"], (s) => (sim.sw.checked = s.layerVisibility["wind-flow"] ?? false), true);
     const stream = toggle("Streamline 3D (berwarna gangguan)", windStore.state.streamlines, (v) => windStore.set({ streamlines: v }));
     const pulse = toggle("Animasi pulsa pada streamline", windStore.state.pulse, (v) => windStore.set({ pulse: v }));
     const effect = toggle("Efek gedung & pohon", windStore.state.buildingEffect, (v) => windStore.set({ buildingEffect: v }));

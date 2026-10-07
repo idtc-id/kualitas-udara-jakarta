@@ -35,7 +35,17 @@ export function mountHeader(ctx: AppContext, host: HTMLElement): void {
   theme.addEventListener("click", () => store.set({ theme: store.state.theme === "dark" ? "light" : "dark" }));
   store.on(["theme"], (s) => (theme.icon = s.theme === "dark" ? "brightness" : "moon"), true);
 
-  host.append(h("div", { class: "header__controls" }, modes, indicator, theme));
+  // The timeline dock is open by default; this button shows/hides it.
+  const dock = document.getElementById("dock");
+  const timeline = h("calcite-button", { scale: "s", appearance: "solid", iconStart: "clock", label: "Timeline" }, "Timeline");
+  const setDock = (visible: boolean) => {
+    if (dock) dock.hidden = !visible;
+    timeline.appearance = visible ? "solid" : "outline-fill";
+  };
+  timeline.addEventListener("click", () => setDock(!!dock?.hidden));
+  setDock(!dock?.hidden);
+
+  host.append(h("div", { class: "header__controls" }, timeline, modes, indicator, theme));
 }
 
 /**

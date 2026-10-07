@@ -9,9 +9,9 @@ import { readingsAt } from "../core/selectors";
 
 const NO_DATA = "#8a8f98";
 
-/** Height of a station column (m) from its ISPU sub-index. */
+/** Height of a station column (m) from its ISPU sub-index: 30-230 m, comparable to the surrounding buildings. */
 function columnHeight(index: number | null): number {
-  return 120 + Math.min(index ?? 0, 400) * 7;
+  return 30 + Math.min(index ?? 0, 400) * 0.5;
 }
 
 /** Monitoring stations as 3D columns: height and colour follow the active indicator. */
@@ -21,7 +21,7 @@ export function createStationsLayer(): LayerModule {
   const symbolCache = new Map<string, PointSymbol3D>();
 
   const columnSymbol = (color: string, height: number) => {
-    const key = `${color}|${Math.round(height / 20)}`;
+    const key = `${color}|${Math.round(height / 5)}`;
     let s = symbolCache.get(key);
     if (!s) {
       s = new PointSymbol3D({
@@ -29,8 +29,8 @@ export function createStationsLayer(): LayerModule {
           {
             type: "object",
             resource: { primitive: "cylinder" },
-            width: 260,
-            height: Math.round(height / 20) * 20,
+            width: 40,
+            height: Math.round(height / 5) * 5,
             anchor: "bottom",
             material: { color },
           },
@@ -53,7 +53,7 @@ export function createStationsLayer(): LayerModule {
           font: { weight: "bold" },
         },
       ],
-      verticalOffset: { screenLength: 14, maxWorldLength: 400 },
+      verticalOffset: { screenLength: 14, maxWorldLength: 150 },
       callout: { type: "line", size: 0.5, color: theme === "dark" ? [255, 255, 255, 0.5] : [0, 0, 0, 0.4] },
     });
 
@@ -110,7 +110,7 @@ export function createStationsLayer(): LayerModule {
             kindText: kindText[station.kind],
           };
           const label = labelGraphics.get(station.id)!;
-          (label.geometry as Point).z = Math.round(height / 20) * 20;
+          (label.geometry as Point).z = Math.round(height / 5) * 5;
           label.geometry = label.geometry!.clone();
           label.symbol = labelSymbol(r?.value != null ? `${station.shortName} · ${Math.round(r.value)}` : station.shortName, s.theme);
         }

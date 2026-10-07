@@ -58,7 +58,7 @@ export function createTreesLayer(speciesUrl: string): LayerModule {
     id: "trees",
     title: "Pohon (simulasi)",
     description: "Pohon hasil simulasi penanaman; menyerap CO₂ dan menjadi penghalang angin berpori.",
-    visibleByDefault: true,
+    visibleByDefault: false,
 
     init({ map, view, store }) {
       map.add(layer);

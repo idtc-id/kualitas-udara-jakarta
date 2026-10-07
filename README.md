@@ -15,7 +15,8 @@ Aplikasi web **digital twin** yang menampilkan polusi udara, cuaca, dan estimasi
 | **Kolom stasiun 3D** | 11 titik pantau (SPKU DKI1–5, US Embassy, titik model); tinggi & warna sesuai kategori ISPU; klik untuk grafik |
 | **Volume polusi** | Grid interpolasi IDW, diklip ke batas DKI, diekstrusi sesuai indeks |
 | **Medan angin** | Panah 3D hasil interpolasi vektor u/v dari titik cuaca |
-| **Atmosfer** | Posisi matahari mengikuti jam timeline; hujan/awan dari data cuaca; **kabut dari PM2.5** |
+| **Atmosfer** | Hujan/awan dari data cuaca; **kabut dari PM2.5** (default mati) |
+| **Pencahayaan mengikuti waktu** | Posisi matahari & bayangan mengikuti jam timeline; mati = cahaya siang tetap (default mati) |
 | **Space-time cube** | Tumpukan voxel per stasiun (sumbu vertikal = waktu), irisan aktif menyala saat playback |
 | **Analisis tren** | Uji **Mann-Kendall** + **Sen's slope** per stasiun (naik / turun / stabil) |
 | **Emisi karbon** | Estimasi CO₂e *bottom-up* per sektor & kota administrasi, laju per jam, kolom 3D bertumpuk, **simulasi skenario** (EV, pengurangan km, energi terbarukan, sampah) |

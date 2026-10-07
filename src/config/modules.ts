@@ -6,7 +6,7 @@
 import type { LayerModule, ModuleRegistry, WidgetModule } from "../core/modules";
 import type { AirQualityProvider } from "../core/types";
 import { appConfig } from "./app.config";
-import { createAtmosphereLayer } from "../layers/atmosphereLayer";
+import { createAtmosphereLayers } from "../layers/atmosphereLayer";
 import { createBuildingsLayer } from "../layers/buildingsLayer";
 import { createSpaceTimeCubeLayer } from "../layers/spaceTimeCubeLayer";
 import { createPollutionSurfaceLayer } from "../layers/pollutionSurfaceLayer";
@@ -57,7 +57,7 @@ export function createRegistry(): ModuleRegistry {
     createTreesLayer(appConfig.treeSpeciesUrl),
     createSpaceTimeCubeLayer(),
     createEmissionsLayer(appConfig.emissionInventoryUrl),
-    createAtmosphereLayer(),
+    ...createAtmosphereLayers(),
   ];
 
   const registry: ModuleRegistry = { airQualityProviders, weatherProviders, layers, widgets: [] };

@@ -6,9 +6,9 @@ import type { LayerModule } from "../core/modules";
 import { hourlyRate, SECTOR_COLORS, SECTORS } from "./model";
 import { emissionStore, loadInventory } from "./state";
 
-const METRES_PER_TONNE_HOUR = 2.5; // vertical scale: 1 tCO₂e/hour = 2.5 m
-const WIDTH = 800;
-const GAP = 12; // surface-coloured gap between stacked segments
+const METRES_PER_TONNE_HOUR = 0.25; // vertical scale: 1 tCO₂e/hour = 0.25 m (a city zone stacks to roughly 200 m)
+const WIDTH = 120;
+const GAP = 1; // surface-coloured gap between stacked segments
 
 /**
  * Stacked 3D columns per kota administrasi: one segment per sector, height =
