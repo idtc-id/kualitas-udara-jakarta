@@ -1,13 +1,13 @@
 import type { AppContext, WidgetModule } from "../core/modules";
 import { h } from "../ui/dom";
-import { createLayer, SOURCE_OPTIONS, TYPE_LABELS } from "./layerFactory";
+import { createLayer, setViewCentreProvider, SOURCE_OPTIONS, TYPE_LABELS } from "./layerFactory";
 import type { ModelUnit } from "./modelConvert";
-import { clearModels, COMPANION_FORMATS, editModel, importModel, MODEL_FORMATS, removeModel, zoomToModel } from "./modelImport";
+import { clearModels, COMPANION_FORMATS, editModel, importModel, importModelFromUrl, MODEL_FORMATS, parseLocation, removeModel, zoomToModel } from "./modelImport";
 import { addDataStore, savedSpecs, type SourceSpec } from "./state";
 
 type Section = "service" | "file" | "model";
 
-/** "Tambah data": add ArcGIS / OGC services, CSV & GeoJSON, and 3D models (glTF, IFC, OBJ …). */
+/** "Tambah data": add ArcGIS / OGC services, open 3D services (I3S, 3D Tiles, CityJSON), CSV & GeoJSON, and 3D models (glTF, IFC, OBJ …). */
 export const addDataWidget: WidgetModule = {
   id: "add-data",
   title: "Tambah data",
@@ -16,6 +16,7 @@ export const addDataWidget: WidgetModule = {
 
   create(ctx: AppContext) {
     const { map, view } = ctx;
+    setViewCentreProvider(() => [view.center?.x ?? 11891000, view.center?.y ?? -692000]);
 
     const addSource = async (spec: SourceSpec, persistent: boolean) => {
       addDataStore.set({ busy: true, message: { kind: "info", text: `Memuat ${TYPE_LABELS[spec.kind]}…` } });
@@ -46,7 +47,7 @@ export const addDataWidget: WidgetModule = {
 
     // --- service / URL
     const kind = h("calcite-select", { label: "Jenis layer", scale: "s" });
-    for (const group of ["ArcGIS", "OGC", "Berkas / format terbuka", "3D"] as const) {
+    for (const group of ["ArcGIS", "OGC", "3D terbuka", "Berkas / format terbuka"] as const) {
       const og = h("calcite-option-group", { label: group });
       for (const o of SOURCE_OPTIONS.filter((x) => x.group === group)) og.append(h("calcite-option", { value: o.kind }, o.label));
       kind.append(og);
@@ -58,6 +59,8 @@ export const addDataWidget: WidgetModule = {
     const paramRow = h("calcite-label", { scale: "s" }, paramLabel, param);
     const title = h("calcite-input-text", { scale: "s", placeholder: "Nama layer (opsional)" });
     const hint = h("div", { class: "muted small" });
+    const extrude = h("calcite-checkbox", { scale: "s" });
+    const extrudeRow = h("calcite-label", { scale: "s", layout: "inline" }, extrude, "Ekstrusi poligon sebagai bangunan 3D (field tinggi / jumlah lantai dideteksi otomatis)");
     const addBtn = h("calcite-button", { iconStart: "add-layer", scale: "s", width: "full" }, "Tambah ke peta");
 
     const syncKind = () => {
@@ -67,13 +70,22 @@ export const addDataWidget: WidgetModule = {
       paramRow.hidden = !o.paramLabel;
       paramLabel.textContent = o.paramLabel ?? "";
       hint.textContent = o.hint;
+      extrudeRow.hidden = !o.extrudable;
+      addBtn.textContent = o.kind === "model-url" ? "Muat model" : "Tambah ke peta";
     };
     kind.addEventListener("calciteSelectChange", syncKind);
     syncKind();
     addBtn.addEventListener("click", () => {
       if (!url.value.trim()) return;
-      const spec: SourceSpec = { kind: kind.value as SourceSpec["kind"], url: url.value.trim(), param: param.value.trim() || undefined, title: title.value.trim() || undefined };
-      void addSource(spec, true).then(() => {
+      const spec: SourceSpec = {
+        kind: kind.value as SourceSpec["kind"],
+        url: url.value.trim(),
+        param: param.value.trim() || undefined,
+        title: title.value.trim() || undefined,
+        extrude: !extrudeRow.hidden && extrude.checked ? true : undefined,
+      };
+      const run = spec.kind === "model-url" ? importModelFromUrl(spec.url, modelOptions(), parseLocation(spec.param)) : addSource(spec, true);
+      void run.then(() => {
         url.value = "";
         param.value = "";
         title.value = "";
@@ -86,36 +98,45 @@ export const addDataWidget: WidgetModule = {
       h("calcite-label", { scale: "s" }, urlLabel, url),
       paramRow,
       h("calcite-label", { scale: "s" }, "Nama", title),
+      extrudeRow,
       hint,
       addBtn,
     );
 
-    // --- local files (CSV / GeoJSON)
-    const fileInput = h("input", { type: "file", accept: ".csv,.geojson,.json", multiple: true, hidden: true });
-    const addFiles = (files: File[]) => {
+    // --- local files (CSV / GeoJSON / CityJSON)
+    const fileInput = h("input", { type: "file", accept: ".csv,.geojson,.json,.cityjson", multiple: true, hidden: true });
+    const fileExtrude = h("calcite-checkbox", { scale: "s" });
+    const isCityJson = async (f: File) => /\.cityjson$/i.test(f.name) || (/\.json$/i.test(f.name) && /"type"\s*:\s*"CityJSON"/.test(await f.slice(0, 4096).text()));
+    const addFiles = async (files: File[]) => {
       for (const f of files) {
         const ext = f.name.slice(f.name.lastIndexOf(".")).toLowerCase();
-        const k = ext === ".csv" ? "file-csv" : ext === ".geojson" || ext === ".json" ? "file-geojson" : null;
+        const k = (await isCityJson(f)) ? "file-cityjson" : ext === ".csv" ? "file-csv" : ext === ".geojson" || ext === ".json" ? "file-geojson" : null;
         if (!k) {
-          addDataStore.set({ message: { kind: "danger", text: `${f.name}: format tidak didukung di sini (gunakan CSV atau GeoJSON; model 3D di tab Model 3D).` } });
+          addDataStore.set({ message: { kind: "danger", text: `${f.name}: format tidak didukung di sini (gunakan CSV, GeoJSON, atau CityJSON; model 3D di tab Model 3D).` } });
           continue;
         }
-        void addSource({ kind: k, url: URL.createObjectURL(f), title: f.name.replace(/\.[^.]+$/, "") }, false);
+        const extrudeFile = k === "file-geojson" && fileExtrude.checked ? true : undefined;
+        await addSource({ kind: k, url: URL.createObjectURL(f), title: f.name.replace(/\.(city\.)?[^.]+$/, ""), extrude: extrudeFile }, false);
       }
     };
     fileInput.addEventListener("change", () => {
-      addFiles([...(fileInput.files ?? [])]);
+      void addFiles([...(fileInput.files ?? [])]);
       fileInput.value = "";
     });
-    const pickFile = h("calcite-button", { iconStart: "upload", scale: "s", width: "full", appearance: "outline" }, "Pilih berkas CSV / GeoJSON");
+    const pickFile = h("calcite-button", { iconStart: "upload", scale: "s", width: "full", appearance: "outline" }, "Pilih berkas CSV / GeoJSON / CityJSON");
     pickFile.addEventListener("click", () => fileInput.click());
     const fileBox = h(
       "div",
       { class: "widget-section", hidden: true },
-      dropZone("Tarik & lepas berkas CSV atau GeoJSON di sini", addFiles),
+      dropZone("Tarik & lepas berkas CSV, GeoJSON, atau CityJSON di sini", (files) => void addFiles(files)),
       pickFile,
       fileInput,
-      h("p", { class: "muted small" }, "CSV: kolom koordinat (lat/lon, latitude/longitude, y/x) dideteksi otomatis. GeoJSON: FeatureCollection WGS84. Berkas lokal tidak disimpan setelah halaman dimuat ulang."),
+      h("calcite-label", { scale: "s", layout: "inline" }, fileExtrude, "Ekstrusi poligon GeoJSON sebagai bangunan 3D"),
+      h(
+        "p",
+        { class: "muted small" },
+        "CSV: kolom koordinat (lat/lon, latitude/longitude, y/x) dideteksi otomatis. GeoJSON: FeatureCollection WGS84; ekstrusi memakai field tinggi (height, render_height, …) atau jumlah lantai (num_floors, building:levels, …). CityJSON: dikonversi ke mesh 3D di browser. Berkas lokal tidak disimpan setelah halaman dimuat ulang.",
+      ),
     );
 
     // --- 3D models (glTF/GLB placed directly; IFC, OBJ, FBX, DAE, USDZ converted in the browser)
@@ -129,7 +150,10 @@ export const addDataWidget: WidgetModule = {
       ["in", "Inci (in)"],
     ]) unit.append(h("calcite-option", { value }, label));
     const zUp = h("calcite-checkbox", { scale: "s" });
-    const placeModel = (files: File[]) => void importModel(files, { unit: unit.value as ModelUnit, zUp: zUp.checked });
+    function modelOptions() {
+      return { unit: unit.value as ModelUnit, zUp: zUp.checked };
+    }
+    const placeModel = (files: File[]) => void importModel(files, modelOptions());
 
     const modelInput = h("input", { type: "file", accept: [...MODEL_FORMATS, ...COMPANION_FORMATS].join(","), multiple: true, hidden: true });
     modelInput.addEventListener("change", () => {

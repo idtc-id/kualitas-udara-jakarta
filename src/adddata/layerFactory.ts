@@ -3,6 +3,8 @@ import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
 import IntegratedMesh3DTilesLayer from "@arcgis/core/layers/IntegratedMesh3DTilesLayer";
 import Layer from "@arcgis/core/layers/Layer";
 import PortalItem from "@arcgis/core/portal/PortalItem";
+import SceneLayer from "@arcgis/core/layers/SceneLayer";
+import type FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 import OGCFeatureLayer from "@arcgis/core/layers/OGCFeatureLayer";
 import WFSLayer from "@arcgis/core/layers/WFSLayer";
 import WMSLayer from "@arcgis/core/layers/WMSLayer";
@@ -12,11 +14,13 @@ import type { SourceKind, SourceSpec } from "./state";
 export interface SourceOption {
   kind: SourceKind;
   label: string;
-  group: "ArcGIS" | "OGC" | "Berkas / format terbuka" | "3D";
+  group: "ArcGIS" | "OGC" | "Berkas / format terbuka" | "3D terbuka";
   urlLabel: string;
   placeholder: string;
   paramLabel?: string;
   hint: string;
+  /** Polygon results can be extruded as 3D buildings. */
+  extrudable?: boolean;
 }
 
 /** Every source the Add data menu offers. Add an entry + a case in createLayer() to support a new type. */
@@ -28,6 +32,7 @@ export const SOURCE_OPTIONS: SourceOption[] = [
     urlLabel: "URL layanan",
     placeholder: "https://…/arcgis/rest/services/…/FeatureServer/0",
     hint: "Jenis dideteksi otomatis: FeatureServer, MapServer, ImageServer, SceneServer (I3S), VectorTileServer, ElevationServer.",
+    extrudable: true,
   },
   {
     kind: "portal-item",
@@ -48,6 +53,7 @@ export const SOURCE_OPTIONS: SourceOption[] = [
     placeholder: "https://…/wfs",
     paramLabel: "Nama feature type (opsional)",
     hint: "Web Feature Service 2.0 (GeoJSON). Kosongkan nama untuk memakai feature type pertama.",
+    extrudable: true,
   },
   {
     kind: "ogc-features",
@@ -57,10 +63,45 @@ export const SOURCE_OPTIONS: SourceOption[] = [
     placeholder: "https://…/ogcapi",
     paramLabel: "Collection ID (opsional)",
     hint: "Kosongkan collection untuk memakai koleksi pertama.",
+    extrudable: true,
   },
-  { kind: "geojson", label: "GeoJSON (URL)", group: "Berkas / format terbuka", urlLabel: "URL GeoJSON", placeholder: "https://…/data.geojson", hint: "FeatureCollection dalam WGS84." },
+  { kind: "geojson", label: "GeoJSON (URL)", group: "Berkas / format terbuka", urlLabel: "URL GeoJSON", placeholder: "https://…/data.geojson", hint: "FeatureCollection dalam WGS84.", extrudable: true },
   { kind: "csv", label: "CSV (URL)", group: "Berkas / format terbuka", urlLabel: "URL CSV", placeholder: "https://…/data.csv", hint: "Kolom koordinat (lat/lon, latitude/longitude, y/x) dideteksi otomatis." },
-  { kind: "3dtiles", label: "3D Tiles (OGC)", group: "3D", urlLabel: "URL tileset.json", placeholder: "https://…/tileset.json", hint: "Mesh terintegrasi format OGC 3D Tiles 1.0/1.1." },
+  {
+    kind: "i3s",
+    label: "OGC I3S (Scene Layer)",
+    group: "3D terbuka",
+    urlLabel: "URL SceneServer / layer I3S",
+    placeholder: "https://…/SceneServer/layers/0",
+    hint: "Standar OGC I3S: bangunan 3D dengan atribut, mesh, point cloud. Dari ArcGIS Enterprise (mis. Jakarta Satu), atau I3S hasil loaders.gl tile-converter yang di-hosting statis.",
+  },
+  {
+    kind: "3dtiles",
+    label: "OGC 3D Tiles",
+    group: "3D terbuka",
+    urlLabel: "URL tileset.json",
+    placeholder: "https://…/tileset.json",
+    paramLabel: "Parameter kueri (opsional)",
+    hint: "OGC 3D Tiles 1.0/1.1 (mis. hasil pg2b3dm/py3dtiles, PLATEAU, 3D BAG). Parameter kueri untuk layanan berkunci, mis. key=API_KEY (Google Photorealistic 3D Tiles: https://tile.googleapis.com/v1/3dtiles/root.json).",
+  },
+  {
+    kind: "cityjson",
+    label: "CityJSON (URL)",
+    group: "3D terbuka",
+    urlLabel: "URL CityJSON",
+    placeholder: "https://…/kota.city.json",
+    paramLabel: "Kode EPSG (opsional)",
+    hint: "Encoding JSON dari CityGML (mis. 3D BAG, ekspor 3DCityDB). Dikonversi ke mesh di browser; atap/dinding diwarnai dari semantik. EPSG dibaca dari berkas, isi manual bila kosong.",
+  },
+  {
+    kind: "model-url",
+    label: "Model 3D (URL: glTF/GLB, IFC, OBJ …)",
+    group: "3D terbuka",
+    urlLabel: "URL model",
+    placeholder: "https://…/gedung.glb",
+    paramLabel: "Lokasi bujur, lintang (opsional)",
+    hint: "Satu berkas model dari repositori terbuka (GitHub, Zenodo, dsb.). Isi lokasi (mis. 106.8227, -6.1945) untuk langsung ditempatkan, atau kosongkan lalu klik di peta.",
+  },
 ];
 
 export const TYPE_LABELS: Record<SourceKind, string> = {
@@ -73,8 +114,12 @@ export const TYPE_LABELS: Record<SourceKind, string> = {
   geojson: "GeoJSON",
   csv: "CSV",
   "3dtiles": "3D Tiles",
+  i3s: "I3S",
+  cityjson: "CityJSON",
+  "model-url": "Model 3D",
   "file-csv": "CSV (berkas)",
   "file-geojson": "GeoJSON (berkas)",
+  "file-cityjson": "CityJSON (berkas)",
 };
 
 async function firstOgcCollection(url: string): Promise<string> {
@@ -84,6 +129,59 @@ async function firstOgcCollection(url: string): Promise<string> {
   const id = json.collections?.[0]?.id;
   if (!id) throw new Error("Layanan tidak memiliki koleksi");
   return id;
+}
+
+/** "a=1&b=2" → { a: "1", b: "2" } */
+function parseQuery(q?: string): Record<string, string> | undefined {
+  if (!q) return undefined;
+  return Object.fromEntries(new URLSearchParams(q.replace(/^\?/, "")));
+}
+
+/** Fields that hold a height in metres or a number of floors, in order of preference. */
+const HEIGHT_FIELDS = ["height", "render_height", "building:height", "bldg_height", "measuredheight", "tinggi", "hgt", "b3_h_dak_50p", "h_dak"];
+const FLOOR_FIELDS = ["num_floors", "building:levels", "levels", "storeys", "jumlah_lantai", "lantai", "floors", "bldg_levels"];
+export const FLOOR_HEIGHT = 3.2;
+export const DEFAULT_BUILDING_HEIGHT = 9;
+
+/** Extrude a polygon layer as 3D buildings from the first height / floors field it has. */
+export function applyExtrusion(layer: Layer): string {
+  const fl = layer as FeatureLayer;
+  if (!("geometryType" in fl) || fl.geometryType !== "polygon") throw new Error("Ekstrusi hanya untuk layer poligon.");
+  const names = new Map((fl.fields ?? []).map((f) => [f.name.toLowerCase(), f.name]));
+  const height = HEIGHT_FIELDS.map((f) => names.get(f)).find(Boolean);
+  const floors = FLOOR_FIELDS.map((f) => names.get(f)).find(Boolean);
+  const read = (name: string) => `Number(DefaultValue($feature[${JSON.stringify(name)}], 0))`;
+  const expression = [
+    height ? `var h = ${read(height)}; if (h > 0) return h;` : "",
+    floors ? `var l = ${read(floors)}; if (l > 0) return l * ${FLOOR_HEIGHT};` : "",
+    `return ${DEFAULT_BUILDING_HEIGHT};`,
+  ].join(" ");
+  fl.elevationInfo = { mode: "on-the-ground" } as never;
+  fl.renderer = {
+    type: "simple",
+    symbol: {
+      type: "polygon-3d",
+      symbolLayers: [{ type: "extrude", material: { color: [226, 222, 214, 1] }, edges: { type: "solid", color: [60, 60, 60, 0.5], size: 0.5 } }],
+    },
+    visualVariables: [{ type: "size", valueExpression: expression, valueUnit: "meters" }],
+  } as never;
+  return height ?? (floors ? `${floors} × ${FLOOR_HEIGHT} m` : `${DEFAULT_BUILDING_HEIGHT} m (bawaan)`);
+}
+
+async function createCityJsonLayer(url: string, epsg?: string): Promise<Layer> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`CityJSON tidak dapat diunduh (${res.status})`);
+  const doc = await res.json();
+  const { cityJsonToLayer } = await import("./cityjson");
+  const centre = viewCentre?.() ?? [11891000, -692000];
+  const { layer } = await cityJsonToLayer(doc, epsg ? Number(epsg.replace(/\D/g, "")) : null, centre);
+  return layer;
+}
+
+/** Supplies the view centre (Web Mercator) for sources without coordinates. */
+let viewCentre: (() => [number, number]) | null = null;
+export function setViewCentreProvider(fn: () => [number, number]): void {
+  viewCentre = fn;
 }
 
 /** Create (and load) an ArcGIS layer for a source specification. */
@@ -119,10 +217,21 @@ export async function createLayer(spec: SourceSpec): Promise<Layer> {
       layer = new CSVLayer({ url });
       break;
     case "3dtiles":
-      layer = new IntegratedMesh3DTilesLayer({ url });
+      layer = new IntegratedMesh3DTilesLayer({ url, customParameters: parseQuery(param) });
       break;
+    case "i3s":
+      // ArcGIS detection handles integrated mesh / point cloud / building layers; plain I3S hosts fall back to SceneLayer.
+      layer = await Layer.fromArcGISServerUrl({ url }).catch(() => new SceneLayer({ url }));
+      break;
+    case "cityjson":
+    case "file-cityjson":
+      layer = await createCityJsonLayer(url, param);
+      break;
+    case "model-url":
+      throw new Error("Model dari URL ditempatkan lewat importModelFromUrl().");
   }
   if (spec.title) layer.title = spec.title;
   await layer.load();
+  if (spec.extrude) applyExtrusion(layer);
   return layer;
 }

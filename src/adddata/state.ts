@@ -11,16 +11,22 @@ export type SourceKind =
   | "geojson"
   | "csv"
   | "3dtiles"
+  | "i3s"
+  | "cityjson"
+  | "model-url"
   | "file-csv"
-  | "file-geojson";
+  | "file-geojson"
+  | "file-cityjson";
 
 export interface SourceSpec {
   kind: SourceKind;
   /** URL, portal item id, or a blob: URL for local files. */
   url: string;
-  /** Optional extra parameter: WFS feature type name, OGC collection id, portal URL. */
+  /** Optional extra parameter: WFS feature type name, OGC collection id, portal URL, query string, EPSG code, location. */
   param?: string;
   title?: string;
+  /** Extrude polygons as 3D buildings using a detected height / floors field. */
+  extrude?: boolean;
 }
 
 export interface AddedLayer {

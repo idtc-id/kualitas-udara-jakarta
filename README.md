@@ -201,8 +201,12 @@ Menu **Tambah data** (ikon pertama di action bar):
 | | Item ArcGIS Online / Portal | `Layer.fromPortalItem` |
 | | OGC WMS, WMTS, WFS, OGC API – Features | `WMSLayer`, `WMTSLayer`, `WFSLayer`, `OGCFeatureLayer` |
 | | GeoJSON, CSV (URL) | `GeoJSONLayer`, `CSVLayer` |
-| | OGC 3D Tiles | `IntegratedMesh3DTilesLayer` |
-| Berkas | CSV, GeoJSON (pilih atau drag & drop) | blob URL → `CSVLayer` / `GeoJSONLayer` |
+| 3D terbuka | OGC I3S (SceneServer / layer I3S) | `Layer.fromArcGISServerUrl`, cadangan `SceneLayer` untuk host I3S non-ArcGIS |
+| | OGC 3D Tiles 1.0/1.1 (+ parameter kueri, mis. `key=`) | `IntegratedMesh3DTilesLayer` dengan `customParameters` |
+| | CityJSON (URL atau berkas) | diurai di browser → `Mesh` georeferensi (EPSG dari berkas, diproyeksikan ke Web Mercator), atap/dinding diwarnai dari semantik |
+| | Model 3D dari URL (glTF/GLB, IFC, OBJ, …) | glTF/GLB langsung dari URL (berkas relatif ikut termuat); format lain diunduh lalu dikonversi; opsional lokasi bujur, lintang |
+| | Bangunan 2.5D (GeoJSON, OGC API Features, WFS, FeatureServer) | opsi **ekstrusi**: field tinggi (`height`, `render_height`, …) atau jumlah lantai (`num_floors`, `building:levels`, … × 3,2 m) dideteksi otomatis |
+| Berkas | CSV, GeoJSON, CityJSON (pilih atau drag & drop) | blob URL → `CSVLayer` / `GeoJSONLayer` / mesh CityJSON |
 | Model 3D | glTF (.gltf), GLB (.glb) | langsung: `meshUtils.createFromGLTF()` → `SketchViewModel.place()` / `update()` (geser, putar, skala) |
 | | IFC, OBJ (+ .mtl), FBX, DAE, USDZ/USD | dikonversi ke GLB **di browser** (`web-ifc` WASM untuk IFC, loader three.js untuk lainnya → `GLTFExporter`), lalu ditempatkan seperti GLB |
 
@@ -216,6 +220,20 @@ Model 3D hanya **ditempatkan**, tidak diunggah atau disimpan (hilang saat halama
 Layer berbasis URL diingat di browser; berkas lokal tidak.
 
 ![Model 3D hasil konversi di browser](docs/screenshots/09-model-3d-konversi.png)
+
+### Sumber model 3D terbuka
+
+| Sumber | Pilih di menu |
+|---|---|
+| Jakarta Satu / ArcGIS Enterprise (`SceneServer`), Esri OSM 3D Buildings | OGC I3S |
+| PLATEAU, 3D BAG, tileset hasil `pg2b3dm` / `py3dtiles` (mis. dari bangunan Overture Maps), Google Photorealistic 3D Tiles (`key=…`) | OGC 3D Tiles |
+| 3D BAG, ekspor 3DCityDB / `citygml-tools` | CityJSON |
+| Overture Maps / OSM (GeoJSON, OGC API Features) dengan tinggi atau jumlah lantai | GeoJSON / OGC API Features + ekstrusi |
+| Repositori model (GitHub, Zenodo, …) | Model 3D (URL) |
+
+Layanan harus mengizinkan CORS. Cesium ion belum didukung langsung (butuh alur token tersendiri).
+
+![CityJSON dengan atap/dinding semantik](docs/screenshots/10-cityjson.png)
 
 Jenis baru cukup ditambahkan di `SOURCE_OPTIONS` dan `createLayer()` di `src/adddata/layerFactory.ts`.
 

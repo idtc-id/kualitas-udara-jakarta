@@ -44,7 +44,7 @@ function syncModels() {
 }
 
 /** Load a model (plus companion files), convert it if needed and start interactive placement. */
-export async function importModel(files: File[], options: Omit<ConvertOptions, "onProgress">): Promise<void> {
+export async function importModel(files: File[], options: Omit<ConvertOptions, "onProgress">, at?: Point): Promise<void> {
   if (!ctx || !sketch || !files.length) return;
   const file = files.find((f) => MODEL_FORMATS.includes(extensionOf(f.name)));
   if (!file) {
@@ -55,7 +55,6 @@ export async function importModel(files: File[], options: Omit<ConvertOptions, "
   }
   const companions = files.filter((f) => f !== file && COMPANION_FORMATS.includes(extensionOf(f.name)));
   const ext = extensionOf(file.name);
-  const origin = (ctx.view.center?.clone() ?? new Point({ longitude: 106.8227, latitude: -6.1945 })) as Point;
   addDataStore.set({ busy: true });
   setStatus(`Memuat ${file.name}…`);
   try {
@@ -71,27 +70,85 @@ export async function importModel(files: File[], options: Omit<ConvertOptions, "
       detail = ` Ukuran ${w} × ${d} m, tinggi ${hgt} m (satuan: ${result.unit}).`;
     }
     const url = URL.createObjectURL(blob);
-    const mesh = await createFromGLTF(origin, url);
-    const id = `m${Date.now().toString(36)}`;
-    objectUrls.set(id, url);
     const format = NATIVE_FORMATS.includes(ext) ? "glTF/GLB" : `${ext.slice(1).toUpperCase()} → GLB`;
-    const done = sketch.on("create", (e) => {
-      if (e.state !== "complete" || !e.graphic) return;
-      done.remove();
-      const placed = e.graphic;
-      placed.attributes = { __id: id, __file: file.name, __format: format };
-      placed.symbol = meshSymbol;
-      syncModels();
-      void sketch!.update(placed);
-      setStatus(`${file.name} ditempatkan. Geser, putar, atau skalakan dengan manipulator; klik di luar model untuk selesai.`, "success");
-    });
-    void sketch.place(mesh);
-    setStatus(`Klik di peta untuk menempatkan ${file.name}.${detail}`);
+    await placeMesh(url, file.name, format, detail, at, true);
   } catch (err) {
     console.error(err);
     setStatus(`Gagal memuat ${file.name}: ${err instanceof Error ? err.message : String(err)}`, "danger");
   } finally {
     addDataStore.set({ busy: false });
+  }
+}
+
+/**
+ * Turn a GLB/glTF URL into a Mesh and either place it at `at` or let the user
+ * click a location. `ownsUrl` = the URL is a blob: URL to revoke on removal.
+ */
+async function placeMesh(url: string, fileName: string, format: string, detail: string, at: Point | undefined, ownsUrl: boolean): Promise<void> {
+  if (!ctx || !sketch) return;
+  if (at && at.z == null) {
+    const ground = await ctx.map.ground.queryElevation(at).catch(() => null);
+    at.z = (ground?.geometry as Point | undefined)?.z ?? 0;
+  }
+  const origin = at ?? ((ctx.view.center?.clone() ?? new Point({ longitude: 106.8227, latitude: -6.1945 })) as Point);
+  const mesh = await createFromGLTF(origin, url);
+  const id = `m${Date.now().toString(36)}`;
+  if (ownsUrl) objectUrls.set(id, url);
+  const attributes = { __id: id, __file: fileName, __format: format };
+  if (at) {
+    const graphic = new Graphic({ geometry: mesh, symbol: meshSymbol, attributes });
+    modelLayer.add(graphic);
+    syncModels();
+    void ctx.view.goTo(graphic).catch(() => {});
+    return setStatus(`${fileName} ditempatkan di ${at.longitude?.toFixed(5)}, ${at.latitude?.toFixed(5)}.${detail}`, "success");
+  }
+  const done = sketch.on("create", (e) => {
+    if (e.state !== "complete" || !e.graphic) return;
+    done.remove();
+    const placed = e.graphic;
+    placed.attributes = attributes;
+    placed.symbol = meshSymbol;
+    syncModels();
+    void sketch!.update(placed);
+    setStatus(`${fileName} ditempatkan. Geser, putar, atau skalakan dengan manipulator; klik di luar model untuk selesai.`, "success");
+  });
+  void sketch.place(mesh);
+  setStatus(`Klik di peta untuk menempatkan ${fileName}.${detail}`);
+}
+
+/** "106.82, -6.19" → Point, or undefined. */
+export function parseLocation(text?: string): Point | undefined {
+  const m = text?.match(/(-?\d+(?:\.\d+)?)\s*[,; ]\s*(-?\d+(?:\.\d+)?)/);
+  if (!m) return undefined;
+  const [lon, lat] = [Number(m[1]), Number(m[2])];
+  return Math.abs(lon) <= 180 && Math.abs(lat) <= 90 ? new Point({ longitude: lon, latitude: lat }) : undefined;
+}
+
+/** Load a model from a URL (open model repositories, GitHub raw, …). */
+export async function importModelFromUrl(url: string, options: Omit<ConvertOptions, "onProgress">, at?: Point): Promise<void> {
+  const name = decodeURIComponent(new URL(url, location.href).pathname.split("/").pop() || "model.glb");
+  const ext = extensionOf(name);
+  if (!MODEL_FORMATS.includes(ext)) return setStatus(`URL harus berakhiran ${MODEL_FORMATS.join(", ")} (ditemukan "${ext || "tanpa ekstensi"}").`, "danger");
+  // glTF/GLB load straight from the URL so relative .bin / textures resolve against it.
+  if (NATIVE_FORMATS.includes(ext)) {
+    addDataStore.set({ busy: true });
+    setStatus(`Memuat ${name}…`);
+    try {
+      await placeMesh(url, name, "glTF/GLB (URL)", "", at, false);
+    } catch (err) {
+      setStatus(`Gagal memuat ${name}: ${err instanceof Error ? err.message : String(err)}`, "danger");
+    } finally {
+      addDataStore.set({ busy: false });
+    }
+    return;
+  }
+  setStatus(`Mengunduh ${name}…`);
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    await importModel([new File([await res.blob()], name)], options, at);
+  } catch (err) {
+    setStatus(`Gagal mengunduh ${name}: ${err instanceof Error ? err.message : String(err)} (periksa URL dan CORS).`, "danger");
   }
 }
 
