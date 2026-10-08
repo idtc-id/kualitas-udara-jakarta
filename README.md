@@ -24,6 +24,7 @@ Aplikasi web **digital twin** yang menampilkan polusi udara, cuaca, dan estimasi
 | **Grafik** | Time series polutan per stasiun + variabel cuaca (termasuk tinggi lapisan batas/PBL), garis ambang ISPU, area prakiraan, tooltip |
 | **Simulasi angin 3D** | Streamline 3D di antara & di atas gedung berwarna **tingkat gangguan** (seperti Tokyo Digital Twin), pulsa animasi, partikel FlowRenderer per ketinggian, **probe titik** per ketinggian. Data angin **BMKG** (prakiraan) / Open-Meteo (historis); gedung dari layer 3D + **gedung what-if** |
 | **Simulasi pohon** | Tanam pohon per klik atau massal per kota (7 spesies). Hitung serapan CO₂ & PM2.5 sesuai usia, **emisi bersih** di modul emisi; pohon menjadi penghalang angin berpori. Ekspor GeoJSON |
+| **Rute Transjakarta 3D** | Rute bus dari layanan Jakarta Satu sebagai **tabung/pita 3D** (`PathSymbol3DLayer`) berwarna per koridor, halte, **animasi bus**, sorot rute dari legenda |
 | **Tambah data** | Layanan ArcGIS (URL, deteksi otomatis) & item ID, OGC **WMS/WMTS/WFS/OGC API Features**, **GeoJSON/CSV** (URL atau berkas, drag & drop), **OGC 3D Tiles**, dan **model 3D** (IFC, glTF/GLB, OBJ, FBX, DAE, USDZ) dengan alur `convertMesh` → penempatan → `applyEdits` |
 | **Basemap 3D** | Basemap 3D ArcGIS (bangunan, label, pohon 3D) dengan pemilih basemap; fallback otomatis ke 2D + OSM 3D Buildings |
 | **Tema** | Gelap/terang (Calcite) |
@@ -87,6 +88,7 @@ src/
 ├── emissions/             # fitur emisi karbon (model, state, layer, widget), mandiri
 ├── wind/                  # simulasi angin: model medan angin (worker), penghalang, FlowRenderer, widget
 ├── greening/              # simulasi pohon: spesies, state, layer pohon 3D, widget
+├── transit/               # rute Transjakarta 3D (PathSymbol3DLayer) + animasi bus
 ├── adddata/               # menu Tambah data: pabrik layer (ArcGIS/OGC/CSV/GeoJSON/3D Tiles), impor model 3D
 └── ui/                    # shell, dock timeline, grafik SVG
 ```
@@ -177,6 +179,17 @@ Terinspirasi tampilan angin [Tokyo Digital Twin](https://3dview.tokyo-digitaltwi
 6. **Gedung**: footprint + tinggi dari scene layer 3D yang tampil (`SceneLayerView.queryFeatures` → bounding box mesh), ditambah gedung what-if (klik di peta).
 
 Grid kota (sel 60 m) saat kamera jauh; grid detail (sel ~3–10 m, medan 3D ~300²) saat ketinggian kamera < 6 km. Semua perhitungan berjalan di Web Worker. Ini model diagnostik cepat, **bukan CFD**; untuk kajian desain gunakan hasil CFD (mis. OpenFOAM) yang dapat dimuat sebagai raster `vector-uv` lewat jalur yang sama.
+
+## Rute Transjakarta 3D
+
+![Rute Transjakarta 3D](docs/screenshots/08-rute-transjakarta-3d.png)
+
+Mengikuti sample [Visualize features with 3D paths](https://developers.arcgis.com/javascript/latest/sample-code/visualization-path-3d/): setiap sublayer garis dari layanan [Rute Transjakarta (Jakarta Satu)](https://jakartasatu.jakarta.go.id/server/rest/services/PETA_JAKARTA/Rute_Transjakarta/MapServer) digambar dengan `PathSymbol3DLayer` (profil tabung atau pita) yang melayang di atas jalan.
+
+- Sublayer rute (garis) dan halte (titik) serta field warna (koridor/kode/nama rute) **dideteksi otomatis** dari layanan, sehingga layanan rute lain bisa dipakai lewat URL (`VITE_TRANSIT_SERVICE_URL`).
+- 8 rute terbanyak memakai warna kategorikal, sisanya abu-abu "Lainnya"; klik rute di legenda untuk menyorot.
+- Lebar jalur menyesuaikan zoom (atau atur manual), ketinggian di atas jalan bisa diatur.
+- Bus beranimasi bergerak di sepanjang rute (ilustratif, bukan GPS real-time).
 
 ## Tambah data
 

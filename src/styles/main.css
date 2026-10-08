@@ -522,3 +522,33 @@ calcite-label[hidden] {
   font-size: var(--calcite-font-size--1);
   overflow-wrap: anywhere;
 }
+
+/* ---------- transit ---------- */
+.route-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.route-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--calcite-color-text-1);
+  font: inherit;
+  font-size: var(--calcite-font-size--1);
+  text-align: start;
+  cursor: pointer;
+}
+button.route-legend__item:hover,
+.route-legend__item.is-active {
+  background: var(--calcite-color-foreground-2);
+}
+.route-legend__label {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
