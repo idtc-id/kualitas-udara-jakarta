@@ -18,8 +18,6 @@ import { createFlowLayer } from "../wind/flowLayer";
 import { windWidget } from "../wind/windWidget";
 import { addDataWidget } from "../adddata/addDataWidget";
 import { createModelImportLayer } from "../adddata/modelImport";
-import { createTransitLayer } from "../transit/transitLayer";
-import { transitWidget } from "../transit/transitWidget";
 import { createEmissionWidget } from "../emissions/emissionWidget";
 import { createEmissionsLayer } from "../emissions/emissionsLayer";
 import { mockAirQuality } from "../providers/airquality/mockAirQuality";
@@ -60,7 +58,6 @@ export function createRegistry(): ModuleRegistry {
     createWindLayer(),
     createTreesLayer(appConfig.treeSpeciesUrl),
     createModelImportLayer(),
-    createTransitLayer(appConfig.transitServiceUrl),
     createSpaceTimeCubeLayer(),
     createEmissionsLayer(appConfig.emissionInventoryUrl),
     ...createAtmosphereLayers(),
@@ -72,7 +69,6 @@ export function createRegistry(): ModuleRegistry {
     chartWidget,
     weatherWidget,
     windWidget,
-    transitWidget,
     createTreesWidget(appConfig.treeSpeciesUrl),
     trendWidget,
     createEmissionWidget(appConfig.emissionInventoryUrl),
