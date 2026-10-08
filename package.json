@@ -13,9 +13,12 @@
   "dependencies": {
     "@arcgis/core": "^5.1.26",
     "@arcgis/map-components": "^5.1.26",
-    "@esri/calcite-components": "^5.1.2"
+    "@esri/calcite-components": "^5.1.2",
+    "three": "^0.186.1",
+    "web-ifc": "^0.0.78"
   },
   "devDependencies": {
+    "@types/three": "^0.186.0",
     "typescript": "~5.9",
     "vite": "^7.3.6"
   }

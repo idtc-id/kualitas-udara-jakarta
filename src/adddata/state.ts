@@ -36,13 +36,15 @@ export interface AddedLayer {
 export interface PlacedModel {
   id: string;
   fileName: string;
+  /** e.g. "glTF/GLB" or "IFC → GLB". */
+  format: string;
 }
 
 export interface AddDataState {
   entries: AddedLayer[];
   busy: boolean;
   message: { kind: "success" | "danger" | "info"; text: string } | null;
-  /** glTF/GLB models placed in the scene (session only). */
+  /** 3D models placed in the scene (session only). */
   models: PlacedModel[];
 }
 

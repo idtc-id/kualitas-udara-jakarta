@@ -25,7 +25,7 @@ Aplikasi web **digital twin** yang menampilkan polusi udara, cuaca, dan estimasi
 | **Simulasi angin 3D** | Streamline 3D di antara & di atas gedung berwarna **tingkat gangguan** (seperti Tokyo Digital Twin), pulsa animasi, partikel FlowRenderer per ketinggian, **probe titik** per ketinggian. Data angin **BMKG** (prakiraan) / Open-Meteo (historis); gedung dari layer 3D + **gedung what-if** |
 | **Simulasi pohon** | Tanam pohon per klik atau massal per kota (7 spesies). Hitung serapan CO₂ & PM2.5 sesuai usia, **emisi bersih** di modul emisi; pohon menjadi penghalang angin berpori. Ekspor GeoJSON |
 | **Rute Transjakarta 3D** | Rute bus dari layanan Jakarta Satu sebagai **tabung/pita 3D** (`PathSymbol3DLayer`) berwarna per koridor, halte, **animasi bus**, sorot rute dari legenda |
-| **Tambah data** | Layanan ArcGIS (URL, deteksi otomatis) & item ID, OGC **WMS/WMTS/WFS/OGC API Features**, **GeoJSON/CSV** (URL atau berkas, drag & drop), **OGC 3D Tiles**, dan **model 3D glTF/GLB** yang ditempatkan dengan klik (tanpa unggah/penyimpanan) |
+| **Tambah data** | Layanan ArcGIS (URL, deteksi otomatis) & item ID, OGC **WMS/WMTS/WFS/OGC API Features**, **GeoJSON/CSV** (URL atau berkas, drag & drop), **OGC 3D Tiles**, dan **model 3D** glTF/GLB, IFC, OBJ, FBX, DAE, USDZ (dikonversi di browser) yang ditempatkan dengan klik (tanpa unggah/penyimpanan) |
 | **Basemap 3D** | Basemap 3D ArcGIS (bangunan, label, pohon 3D) dengan pemilih basemap; fallback otomatis ke 2D + OSM 3D Buildings |
 | **Tema** | Gelap/terang (Calcite) |
 
@@ -89,7 +89,7 @@ src/
 ├── wind/                  # simulasi angin: model medan angin (worker), penghalang, FlowRenderer, widget
 ├── greening/              # simulasi pohon: spesies, state, layer pohon 3D, widget
 ├── transit/               # rute Transjakarta 3D (PathSymbol3DLayer) + animasi bus
-├── adddata/               # menu Tambah data: pabrik layer (ArcGIS/OGC/CSV/GeoJSON/3D Tiles), penempatan model glTF/GLB
+├── adddata/               # menu Tambah data: pabrik layer (ArcGIS/OGC/CSV/GeoJSON/3D Tiles), konversi & penempatan model 3D
 └── ui/                    # shell, dock timeline, grafik SVG
 ```
 
@@ -203,9 +203,19 @@ Menu **Tambah data** (ikon pertama di action bar):
 | | GeoJSON, CSV (URL) | `GeoJSONLayer`, `CSVLayer` |
 | | OGC 3D Tiles | `IntegratedMesh3DTilesLayer` |
 | Berkas | CSV, GeoJSON (pilih atau drag & drop) | blob URL → `CSVLayer` / `GeoJSONLayer` |
-| Model 3D | glTF (.gltf), GLB (.glb) | `meshUtils.createFromGLTF()` → `SketchViewModel.place()` / `update()` (geser, putar, skala), sepenuhnya di browser |
+| Model 3D | glTF (.gltf), GLB (.glb) | langsung: `meshUtils.createFromGLTF()` → `SketchViewModel.place()` / `update()` (geser, putar, skala) |
+| | IFC, OBJ (+ .mtl), FBX, DAE, USDZ/USD | dikonversi ke GLB **di browser** (`web-ifc` WASM untuk IFC, loader three.js untuk lainnya → `GLTFExporter`), lalu ditempatkan seperti GLB |
 
-Model 3D hanya **ditempatkan**, tidak diunggah atau disimpan (hilang saat halaman dimuat ulang), sehingga tidak butuh backend atau ArcGIS Online. Format yang didukung saat ini glTF/GLB; IFC, OBJ, FBX, DAE, dan USDZ butuh konversi di server (mis. `SceneLayer.convertMesh` dengan 3D object layer ArcGIS) dan belum diaktifkan. Layer berbasis URL diingat di browser; berkas lokal tidak.
+Model 3D hanya **ditempatkan**, tidak diunggah atau disimpan (hilang saat halaman dimuat ulang), sehingga tidak butuh backend atau ArcGIS Online. Konversi (`src/adddata/modelConvert.ts`) dimuat hanya saat dibutuhkan, jadi three.js dan web-ifc tidak memperbesar muatan awal. Hasil konversi dinormalkan: meter, Y-up, titik asal di tengah dasar model.
+
+- **Berkas pendukung**: pilih/lepas bersamaan dengan modelnya (.mtl, .bin, tekstur .png/.jpg); juga berlaku untuk .gltf dengan berkas eksternal.
+- **Satuan**: "Otomatis" menebak dari ukuran (mis. objek > 1,5 km dianggap sentimeter); bisa dipilih manual (m, cm, mm, ft, in). IFC dan DAE membawa satuannya sendiri.
+- **Z-up**: centang bila model CAD/OBJ tampil rebah.
+- IFC: elemen digabung per warna agar ringan; koordinat georeferensi diabaikan (model ditempatkan dengan klik). Model besar (puluhan MB) diproses di thread utama dan bisa butuh beberapa detik hingga menit.
+
+Layer berbasis URL diingat di browser; berkas lokal tidak.
+
+![Model 3D hasil konversi di browser](docs/screenshots/09-model-3d-konversi.png)
 
 Jenis baru cukup ditambahkan di `SOURCE_OPTIONS` dan `createLayer()` di `src/adddata/layerFactory.ts`.
 

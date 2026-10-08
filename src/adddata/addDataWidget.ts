@@ -1,12 +1,13 @@
 import type { AppContext, WidgetModule } from "../core/modules";
 import { h } from "../ui/dom";
 import { createLayer, SOURCE_OPTIONS, TYPE_LABELS } from "./layerFactory";
-import { clearModels, editModel, importModel, MODEL_FORMATS, removeModel, zoomToModel } from "./modelImport";
+import type { ModelUnit } from "./modelConvert";
+import { clearModels, COMPANION_FORMATS, editModel, importModel, MODEL_FORMATS, removeModel, zoomToModel } from "./modelImport";
 import { addDataStore, savedSpecs, type SourceSpec } from "./state";
 
 type Section = "service" | "file" | "model";
 
-/** "Tambah data": add ArcGIS / OGC services, CSV & GeoJSON, and 3D models (IFC, glTF …). */
+/** "Tambah data": add ArcGIS / OGC services, CSV & GeoJSON, and 3D models (glTF, IFC, OBJ …). */
 export const addDataWidget: WidgetModule = {
   id: "add-data",
   title: "Tambah data",
@@ -117,13 +118,25 @@ export const addDataWidget: WidgetModule = {
       h("p", { class: "muted small" }, "CSV: kolom koordinat (lat/lon, latitude/longitude, y/x) dideteksi otomatis. GeoJSON: FeatureCollection WGS84. Berkas lokal tidak disimpan setelah halaman dimuat ulang."),
     );
 
-    // --- 3D models (glTF / GLB, placed in the browser only)
-    const modelInput = h("input", { type: "file", accept: MODEL_FORMATS.join(","), multiple: false, hidden: true });
+    // --- 3D models (glTF/GLB placed directly; IFC, OBJ, FBX, DAE, USDZ converted in the browser)
+    const unit = h("calcite-select", { label: "Satuan model", scale: "s" });
+    for (const [value, label] of [
+      ["auto", "Otomatis"],
+      ["m", "Meter"],
+      ["cm", "Sentimeter"],
+      ["mm", "Milimeter"],
+      ["ft", "Kaki (ft)"],
+      ["in", "Inci (in)"],
+    ]) unit.append(h("calcite-option", { value }, label));
+    const zUp = h("calcite-checkbox", { scale: "s" });
+    const placeModel = (files: File[]) => void importModel(files, { unit: unit.value as ModelUnit, zUp: zUp.checked });
+
+    const modelInput = h("input", { type: "file", accept: [...MODEL_FORMATS, ...COMPANION_FORMATS].join(","), multiple: true, hidden: true });
     modelInput.addEventListener("change", () => {
-      void importModel([...(modelInput.files ?? [])]);
+      placeModel([...(modelInput.files ?? [])]);
       modelInput.value = "";
     });
-    const pickModel = h("calcite-button", { iconStart: "cube", scale: "s", width: "full" }, "Pilih model glTF / GLB");
+    const pickModel = h("calcite-button", { iconStart: "cube", scale: "s", width: "full" }, "Pilih model 3D");
     pickModel.addEventListener("click", () => modelInput.click());
     const modelList = h("div", { class: "added-list" });
     const clearAll = h("calcite-button", { iconStart: "trash", scale: "s", appearance: "transparent", kind: "danger" }, "Hapus semua model");
@@ -131,16 +144,18 @@ export const addDataWidget: WidgetModule = {
     const modelBox = h(
       "div",
       { class: "widget-section", hidden: true },
-      dropZone("Tarik & lepas model glTF (.gltf) atau GLB (.glb) di sini", (files) => void importModel(files)),
+      dropZone("Tarik & lepas model 3D di sini (glTF/GLB, IFC, OBJ, FBX, DAE, USDZ)", placeModel),
       pickModel,
       modelInput,
+      h("calcite-label", { scale: "s" }, "Satuan (untuk OBJ/FBX/USDZ)", unit),
+      h("calcite-label", { scale: "s", layout: "inline" }, zUp, "Model Z-up (putar agar tegak)"),
       h("div", { class: "section-title" }, "Model di peta"),
       modelList,
       clearAll,
       h(
         "p",
         { class: "muted small" },
-        "Model dibaca langsung di browser lalu ditempatkan dengan klik di peta; setelah itu bisa digeser, diputar, dan diskalakan. Model tidak diunggah atau disimpan dan hilang saat halaman dimuat ulang. Gunakan .glb, atau .gltf dengan data (buffer/tekstur) tertanam. Format lain (IFC, OBJ, FBX, DAE, USDZ) belum didukung karena butuh konversi di server.",
+        "Semua diproses di browser: glTF/GLB langsung ditempatkan; IFC, OBJ, FBX, DAE, dan USDZ dikonversi dulu ke GLB (web-ifc / three.js). Pilih berkas pendukung (.mtl, .bin, tekstur) bersamaan dengan modelnya. Klik di peta untuk menempatkan, lalu geser, putar, dan skalakan. Model tidak diunggah atau disimpan dan hilang saat halaman dimuat ulang. Model besar (IFC puluhan MB) bisa butuh waktu.",
       ),
     );
 
@@ -174,7 +189,7 @@ export const addDataWidget: WidgetModule = {
               zoom.addEventListener("click", () => zoomToModel(m.id));
               const remove = h("calcite-action", { icon: "trash", text: "Hapus", scale: "s" });
               remove.addEventListener("click", () => removeModel(m.id));
-              return h("div", { class: "added-item" }, h("div", { class: "added-item__text" }, h("strong", {}, m.fileName), h("span", { class: "muted small" }, "glTF/GLB · sesi ini")), edit, zoom, remove);
+              return h("div", { class: "added-item" }, h("div", { class: "added-item__text" }, h("strong", {}, m.fileName), h("span", { class: "muted small" }, `${m.format} · sesi ini`)), edit, zoom, remove);
             })
           : [h("div", { class: "muted small" }, "Belum ada model.")]),
       );
