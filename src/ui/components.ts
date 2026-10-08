@@ -9,6 +9,8 @@ import "@esri/calcite-components/components/calcite-icon";
 import "@esri/calcite-components/components/calcite-input-date-picker";
 import "@esri/calcite-components/components/calcite-input-number";
 import "@esri/calcite-components/components/calcite-label";
+import "@esri/calcite-components/components/calcite-option-group";
+import "@esri/calcite-components/components/calcite-input-text";
 import "@esri/calcite-components/components/calcite-list";
 import "@esri/calcite-components/components/calcite-list-item";
 import "@esri/calcite-components/components/calcite-loader";

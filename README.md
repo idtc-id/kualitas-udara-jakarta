@@ -24,6 +24,7 @@ Aplikasi web **digital twin** yang menampilkan polusi udara, cuaca, dan estimasi
 | **Grafik** | Time series polutan per stasiun + variabel cuaca (termasuk tinggi lapisan batas/PBL), garis ambang ISPU, area prakiraan, tooltip |
 | **Simulasi angin 3D** | Streamline 3D di antara & di atas gedung berwarna **tingkat gangguan** (seperti Tokyo Digital Twin), pulsa animasi, partikel FlowRenderer per ketinggian, **probe titik** per ketinggian. Data angin **BMKG** (prakiraan) / Open-Meteo (historis); gedung dari layer 3D + **gedung what-if** |
 | **Simulasi pohon** | Tanam pohon per klik atau massal per kota (7 spesies). Hitung serapan CO₂ & PM2.5 sesuai usia, **emisi bersih** di modul emisi; pohon menjadi penghalang angin berpori. Ekspor GeoJSON |
+| **Tambah data** | Layanan ArcGIS (URL, deteksi otomatis) & item ID, OGC **WMS/WMTS/WFS/OGC API Features**, **GeoJSON/CSV** (URL atau berkas, drag & drop), **OGC 3D Tiles**, dan **model 3D** (IFC, glTF/GLB, OBJ, FBX, DAE, USDZ) dengan alur `convertMesh` → penempatan → `applyEdits` |
 | **Basemap 3D** | Basemap 3D ArcGIS (bangunan, label, pohon 3D) dengan pemilih basemap; fallback otomatis ke 2D + OSM 3D Buildings |
 | **Tema** | Gelap/terang (Calcite) |
 
@@ -86,6 +87,7 @@ src/
 ├── emissions/             # fitur emisi karbon (model, state, layer, widget), mandiri
 ├── wind/                  # simulasi angin: model medan angin (worker), penghalang, FlowRenderer, widget
 ├── greening/              # simulasi pohon: spesies, state, layer pohon 3D, widget
+├── adddata/               # menu Tambah data: pabrik layer (ArcGIS/OGC/CSV/GeoJSON/3D Tiles), impor model 3D
 └── ui/                    # shell, dock timeline, grafik SVG
 ```
 
@@ -175,6 +177,24 @@ Terinspirasi tampilan angin [Tokyo Digital Twin](https://3dview.tokyo-digitaltwi
 6. **Gedung**: footprint + tinggi dari scene layer 3D yang tampil (`SceneLayerView.queryFeatures` → bounding box mesh), ditambah gedung what-if (klik di peta).
 
 Grid kota (sel 60 m) saat kamera jauh; grid detail (sel ~3–10 m, medan 3D ~300²) saat ketinggian kamera < 6 km. Semua perhitungan berjalan di Web Worker. Ini model diagnostik cepat, **bukan CFD**; untuk kajian desain gunakan hasil CFD (mis. OpenFOAM) yang dapat dimuat sebagai raster `vector-uv` lewat jalur yang sama.
+
+## Tambah data
+
+Menu **Tambah data** (ikon pertama di action bar):
+
+| Bagian | Jenis | Implementasi |
+|---|---|---|
+| Layanan / URL | Layanan ArcGIS (FeatureServer, MapServer, ImageServer, SceneServer, VectorTileServer, …) | `Layer.fromArcGISServerUrl` (jenis dideteksi otomatis) |
+| | Item ArcGIS Online / Portal | `Layer.fromPortalItem` |
+| | OGC WMS, WMTS, WFS, OGC API – Features | `WMSLayer`, `WMTSLayer`, `WFSLayer`, `OGCFeatureLayer` |
+| | GeoJSON, CSV (URL) | `GeoJSONLayer`, `CSVLayer` |
+| | OGC 3D Tiles | `IntegratedMesh3DTilesLayer` |
+| Berkas | CSV, GeoJSON (pilih atau drag & drop) | blob URL → `CSVLayer` / `GeoJSONLayer` |
+| Model 3D | IFC, glTF/GLB, OBJ, FBX, DAE, USDZ | Mengikuti sample [SceneLayer upload 3D models and applyEdits](https://developers.arcgis.com/javascript/latest/sample-code/editing-scenelayer-applyedits/): `SceneLayer.convertMesh()` → `SketchViewModel.place()/update()` → `SceneLayer.applyEdits({ addFeatures })` |
+
+Model 3D membutuhkan **3D object scene layer yang editable** (ArcGIS Online/Enterprise, dengan associated feature layer dan hak edit) sebagai target konversi & penyimpanan. Isi URL-nya di widget atau di `VITE_3D_OBJECT_LAYER_URL`. Model bergeoreferensi (mis. IFC dengan koordinat) langsung ditempatkan di lokasinya. Tanpa layer target, glTF/GLB tetap bisa dipratinjau secara lokal (tidak tersimpan). Layer berbasis URL diingat di browser; berkas lokal tidak.
+
+Jenis baru cukup ditambahkan di `SOURCE_OPTIONS` dan `createLayer()` di `src/adddata/layerFactory.ts`.
 
 ## Simulasi pohon
 

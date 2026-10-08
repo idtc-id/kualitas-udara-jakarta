@@ -31,6 +31,8 @@ export interface AppConfig {
   archiveUrl: string;
   /** Tree species table for the planting simulation. */
   treeSpeciesUrl: string;
+  /** Editable 3D object scene layer that receives uploaded 3D models (IFC, glTF …). Empty = local preview only. */
+  editable3DObjectLayerUrl: string;
   /** Default basemap per theme (ArcGIS 3D basemaps include 3D buildings, labels and trees). */
   basemaps: { dark: string; light: string };
   /** Used when the 3D basemap cannot be loaded (e.g. no access); paired with buildings.fallback. */
@@ -60,6 +62,7 @@ export const appConfig: AppConfig = {
   emissionInventoryUrl: "./data/emission-inventory.json",
   archiveUrl: "./data/archive",
   treeSpeciesUrl: "./data/tree-species.json",
+  editable3DObjectLayerUrl: env.VITE_3D_OBJECT_LAYER_URL ?? "",
   basemaps: { dark: "dark-gray-3d", light: "gray-3d" },
   fallbackBasemaps: { dark: "dark-gray-vector", light: "gray-vector" },
   basemapOptions: [

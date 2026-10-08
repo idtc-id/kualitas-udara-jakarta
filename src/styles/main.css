@@ -468,3 +468,57 @@ arcgis-scene {
 .probe[hidden] {
   display: none;
 }
+
+/* ---------- add data ---------- */
+.widget-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.widget-section[hidden],
+calcite-label[hidden] {
+  display: none;
+}
+.input-row {
+  display: flex;
+  gap: 6px;
+}
+.input-row calcite-input-text {
+  flex: 1;
+}
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 12px;
+  border: 1px dashed var(--calcite-color-border-1);
+  border-radius: 6px;
+  color: var(--calcite-color-text-3);
+  font-size: var(--calcite-font-size--1);
+  text-align: center;
+}
+.drop-zone--over {
+  border-color: var(--calcite-color-brand);
+  background: var(--calcite-color-foreground-2);
+  color: var(--calcite-color-text-1);
+}
+.added-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.added-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid var(--calcite-color-border-3);
+}
+.added-item__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: var(--calcite-font-size--1);
+  overflow-wrap: anywhere;
+}
