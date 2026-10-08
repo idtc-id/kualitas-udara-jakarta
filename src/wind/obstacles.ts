@@ -3,18 +3,11 @@ import type SceneLayer from "@arcgis/core/layers/SceneLayer";
 import type SceneView from "@arcgis/core/views/SceneView";
 import type SceneLayerView from "@arcgis/core/views/layers/SceneLayerView";
 import { toMercator } from "../core/geo";
+import { obstacleFromExtent, type Obstacle } from "../core/obstacleSources";
 import type { TreeSpecies, TreePlanting } from "../greening/state";
 import type { WhatIfBuilding } from "./state";
 
-/** Axis-aligned obstacle footprint in Web Mercator metres. porosity 1 = solid building, < 1 = vegetation. */
-export interface Obstacle {
-  xmin: number;
-  ymin: number;
-  xmax: number;
-  ymax: number;
-  height: number;
-  porosity: number;
-}
+export type { Obstacle } from "../core/obstacleSources";
 
 const MAX_FEATURES = 25_000;
 
@@ -40,14 +33,9 @@ export async function sceneBuildingObstacles(view: SceneView, extent: Extent, si
       for (const f of result.features) {
         const e = f.geometry?.extent;
         if (!e) continue;
-        const height = (e.zmax ?? 0) - (e.zmin ?? 0);
-        if (height < 3) continue;
-        let [xmin, ymin, xmax, ymax] = [e.xmin, e.ymin, e.xmax, e.ymax];
-        if (e.spatialReference?.isGeographic) {
-          [xmin, ymin] = toMercator(e.xmin, e.ymin);
-          [xmax, ymax] = toMercator(e.xmax, e.ymax);
-        }
-        out.push({ xmin, ymin, xmax, ymax, height, porosity: 1 });
+        const o = obstacleFromExtent(e);
+        if (!o || o.height < 3) continue;
+        out.push(o);
         if (out.length >= MAX_FEATURES) return out;
       }
     } catch (err) {

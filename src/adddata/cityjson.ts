@@ -6,6 +6,7 @@ import MeshComponent from "@arcgis/core/geometry/support/MeshComponent";
 import * as projectOperator from "@arcgis/core/geometry/operators/projectOperator";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import { ShapeUtils, Vector2 } from "three";
+import type { Obstacle } from "../core/obstacleSources";
 
 /**
  * CityJSON (OGC community standard, JSON encoding of CityGML; e.g. 3D BAG,
@@ -124,6 +125,8 @@ export interface CityJSONResult {
   objects: number;
   triangles: number;
   epsg: number | null;
+  /** Bounding box + height per building-like object (Web Mercator). */
+  obstacles: Obstacle[];
 }
 
 /**
@@ -147,12 +150,20 @@ export async function cityJsonToLayer(doc: CityJSONDoc, epsgOverride: number | n
   // Triangulate in the source CRS (metric, planar), then project the vertices.
   const faces: Record<Klass, number[]> = Object.fromEntries(CLASSES.map((c) => [c, []])) as never;
   let objects = 0;
+  // Vertices of each building-like object, for its wind obstacle box.
+  const solids: number[][] = [];
   for (const obj of Object.values(doc.CityObjects ?? {})) {
     if (!obj.geometry?.length) continue;
     // Highest LoD only, so LoD1 blocks don't overlap LoD2 roofs.
     const best = obj.geometry.reduce((a, g) => (Number(g.lod ?? 0) > Number(a.lod ?? 0) ? g : a));
     objects++;
-    for (const s of surfaces(best)) faces[classOf(obj.type, s.semantic)].push(...triangulate(s.rings, pos));
+    const used: number[] = [];
+    for (const s of surfaces(best)) {
+      const tris = triangulate(s.rings, pos);
+      faces[classOf(obj.type, s.semantic)].push(...tris);
+      used.push(...tris);
+    }
+    if (/Building|Bridge|Tunnel|Construction|Tree|Vegetation/i.test(obj.type) && used.length) solids.push(used);
   }
 
   const fileEpsg = epsgFromReferenceSystem(doc.metadata?.referenceSystem);
@@ -188,6 +199,18 @@ export async function cityJsonToLayer(doc: CityJSONDoc, epsgOverride: number | n
     }
   }
 
+  // One axis-aligned box per object, used to block the wind simulation.
+  const obstacles: Obstacle[] = [];
+  for (const used of solids) {
+    let xmin = Infinity, ymin = Infinity, zmin = Infinity, xmax = -Infinity, ymax = -Infinity, zmax = -Infinity;
+    for (const i of used) {
+      xmin = Math.min(xmin, out[i * 3]); xmax = Math.max(xmax, out[i * 3]);
+      ymin = Math.min(ymin, out[i * 3 + 1]); ymax = Math.max(ymax, out[i * 3 + 1]);
+      zmin = Math.min(zmin, out[i * 3 + 2]); zmax = Math.max(zmax, out[i * 3 + 2]);
+    }
+    if (zmax - zmin > 1) obstacles.push({ xmin, ymin, xmax, ymax, height: zmax - zmin, porosity: 1 });
+  }
+
   const components = CLASSES.filter((c) => faces[c].length).map(
     (c) => new MeshComponent({ faces: new Uint32Array(faces[c]), material: { color: COLORS[c] }, shading: "flat" }),
   );
@@ -197,5 +220,5 @@ export async function cityJsonToLayer(doc: CityJSONDoc, epsgOverride: number | n
   layer.add(new Graphic({ geometry: mesh, symbol: { type: "mesh-3d", symbolLayers: [{ type: "fill" }] } as never }));
   layer.fullExtent = mesh.extent;
   const triangles = components.reduce((sum, c) => sum + (c.faces?.length ?? 0) / 3, 0);
-  return { layer, objects, triangles, epsg };
+  return { layer, objects, triangles, epsg, obstacles };
 }

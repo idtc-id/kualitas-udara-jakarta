@@ -29,15 +29,8 @@ export interface WindProbe {
 }
 
 export interface WindState {
-  buildingEffect: boolean;
-  /** Use a fine local grid around the camera when zoomed in. */
-  detail: boolean;
   /** Height (m) of the animated particle layer. */
   animLevel: number;
-  /** Show traced 3D streamlines coloured by disturbance. */
-  streamlines: boolean;
-  /** Animate a pulse travelling along the 3D streamlines. */
-  pulse: boolean;
   whatIf: WhatIfBuilding[];
   placeHeight: number;
   placeSize: number;
@@ -47,6 +40,8 @@ export interface WindState {
   stats: WindStats | null;
   /** Number of real buildings read from the scene for the current grid. */
   sceneBuildings: number;
+  /** Obstacles from objects added through the Add data menu. */
+  addedObstacles: number;
   streamlineCount: number;
   gridInfo: string;
   probe: WindProbe | null;
@@ -55,11 +50,7 @@ export interface WindState {
 }
 
 export const windStore = new Store<WindState>({
-  buildingEffect: true,
-  detail: true,
   animLevel: 10,
-  streamlines: true,
-  pulse: true,
   whatIf: [],
   placeHeight: 150,
   placeSize: 50,
@@ -68,6 +59,7 @@ export const windStore = new Store<WindState>({
   trailLength: 400,
   stats: null,
   sceneBuildings: 0,
+  addedObstacles: 0,
   streamlineCount: 0,
   gridInfo: "",
   probe: null,

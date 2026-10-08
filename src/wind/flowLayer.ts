@@ -16,6 +16,7 @@ import { fromMercator, toMercator } from "../core/geo";
 import type { LayerModule } from "../core/modules";
 import { weatherAt } from "../core/selectors";
 import { greeningStore } from "../greening/state";
+import { collectObstacles, onObstaclesChanged } from "../core/obstacleSources";
 import { sceneBuildingObstacles, treeObstacles, whatIfObstacles, type Obstacle } from "./obstacles";
 import { DISTURBANCE_STOPS, windStore } from "./state";
 import { LEVELS, probe, type Field3D, type Streamlines } from "./wind3d";
@@ -62,7 +63,9 @@ const disturbanceVariable = () => ({
  *    disturbance, with a pulse travelling along them
  *  - point probe: wind per height at a clicked location
  * Inputs: BMKG wind (forecast hours) / Open-Meteo (history), buildings from the
- * visible 3D layers, what-if buildings and planted trees.
+ * visible 3D layers, objects added through the Add data menu (registered
+ * obstacle sources: placed models, CityJSON, extruded polygons), what-if
+ * buildings and planted trees.
  */
 export function createFlowLayer(): LayerModule {
   let visible = false;
@@ -76,10 +79,9 @@ export function createFlowLayer(): LayerModule {
   const probeLayer = new GraphicsLayer({ title: "Titik probe angin", elevationInfo: { mode: "relative-to-ground" } });
 
   const applyVisibility = () => {
-    const s = windStore.state;
     if (flow) flow.visible = visible;
-    if (lines) lines.visible = visible && s.streamlines;
-    if (pulse) pulse.visible = visible && s.streamlines && s.pulse;
+    if (lines) lines.visible = visible;
+    if (pulse) pulse.visible = visible;
     whatIfLayer.visible = visible;
     probeLayer.visible = visible;
   };
@@ -102,7 +104,7 @@ export function createFlowLayer(): LayerModule {
 
       const chooseGrid = (): { grid: Grid; key: string; extent: Extent; detail: boolean } => {
         const z = view.camera?.position?.z ?? Infinity;
-        if (windStore.state.detail && z < DETAIL_MAX_ALTITUDE && view.center) {
+        if (z < DETAIL_MAX_ALTITUDE && view.center) {
           const [cx, cy] = toMercator(view.center.longitude!, view.center.latitude!);
           const half = Math.min(3000, Math.max(500, z * 0.9));
           const cs = Math.max(3, (2 * half) / DETAIL_PIXELS);
@@ -236,7 +238,7 @@ export function createFlowLayer(): LayerModule {
         const ws = windStore.state;
 
         // Real buildings are only read for the fine local grid (where they matter and are loaded).
-        if (ws.buildingEffect && detail && key !== obstaclesKey) {
+        if (detail && key !== obstaclesKey) {
           obstacles = await sceneBuildingObstacles(view, extent).catch(() => []);
           obstaclesKey = key;
         } else if (!detail) {
@@ -245,11 +247,14 @@ export function createFlowLayer(): LayerModule {
         }
         if (run !== building) return;
 
+        // Objects from the Add data menu block the wind at every grid level.
+        const added = await collectObstacles(extent).catch(() => []);
+        if (run !== building) return;
         const g = greeningStore.state;
-        const all = ws.buildingEffect ? [...obstacles, ...whatIfObstacles(ws.whatIf), ...treeObstacles(g.plantings, g.species)] : [];
+        const all = [...obstacles, ...added, ...whatIfObstacles(ws.whatIf), ...treeObstacles(g.plantings, g.species)];
 
         const now = performance.now();
-        const want3d = (ws.streamlines || !!ws.probe || force3d) && (force3d || !store.state.playing || now - last3d > FIELD3D_PLAYING_INTERVAL_MS);
+        const want3d = force3d || !store.state.playing || now - last3d > FIELD3D_PLAYING_INTERVAL_MS;
         const cs3 = Math.max(grid.cellSize * 2, (grid.width * grid.cellSize) / FIELD3D_PIXELS);
         const grid3 = { xmin: grid.xmin, ymax: grid.ymax, cellSize: cs3, width: Math.round((grid.width * grid.cellSize) / cs3), height: Math.round((grid.height * grid.cellSize) / cs3) };
 
@@ -257,7 +262,7 @@ export function createFlowLayer(): LayerModule {
           grid,
           base,
           obstacles: all,
-          buildingEffect: ws.buildingEffect,
+          buildingEffect: true,
           animLevel: ws.animLevel,
           field3d: want3d
             ? { grid: grid3, seedHeights: detail ? [5, 20, 45, 80, 130] : [15, 60, 150], seedsPerHeight: detail ? 160 : 220, maxSteps: detail ? 160 : 120, chunk: 6 }
@@ -272,6 +277,7 @@ export function createFlowLayer(): LayerModule {
         windStore.set({
           stats: result.stats,
           sceneBuildings: obstacles.length,
+          addedObstacles: added.length,
           streamlineCount: result.streamlines ? result.streamlines.disturbance.length : windStore.state.streamlineCount,
           gridInfo: detail ? `Grid detail ${grid.width}×${grid.height} @ ${grid.cellSize.toFixed(1)} m · 3D ${grid3.width}² × ${LEVELS.length} lapis` : `Grid kota ${grid.width}×${grid.height} @ ${CITY_CELL} m`,
         });
@@ -297,7 +303,7 @@ export function createFlowLayer(): LayerModule {
           listMode: "hide",
         });
         const tasks: Promise<void>[] = [swap("flow", nextFlow, run)];
-        if (result.streamlines && ws.streamlines) {
+        if (result.streamlines) {
           const { base: b, pulseLayer } = streamlineLayers(result.streamlines);
           tasks.push(swap("lines", b, run), swap("pulse", pulseLayer, run));
         }
@@ -326,14 +332,11 @@ export function createFlowLayer(): LayerModule {
       store.on(["weather", "timeIndex"], () => schedule());
       store.on(["playing"], (s) => !s.playing && schedule(100, true));
       windStore.on(["density", "flowSpeed", "trailLength"], () => flow && (flow.renderer = flowRenderer(windStore.state.stats?.freeSpeed ?? 2)));
-      windStore.on(["buildingEffect", "detail", "whatIf", "animLevel"], () => {
+      windStore.on(["whatIf", "animLevel"], () => {
         obstaclesKey = "";
         schedule(50, true);
       });
-      windStore.on(["streamlines", "pulse"], (s) => {
-        applyVisibility();
-        if (s.streamlines && !lines) schedule(0, true);
-      });
+      onObstaclesChanged(() => schedule(150, true));
       greeningStore.on(["plantings"], () => schedule(250, true));
       // Camera moved: new grid; also give scene layers time to load their buildings.
       reactiveUtils.watch(

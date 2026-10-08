@@ -4,6 +4,8 @@ import { createFromGLTF } from "@arcgis/core/geometry/support/meshUtils";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import SketchViewModel from "@arcgis/core/widgets/Sketch/SketchViewModel";
 import type { AppContext, LayerModule } from "../core/modules";
+import { intersects, notifyObstaclesChanged, obstacleFromExtent, registerObstacleSource, type Obstacle } from "../core/obstacleSources";
+import * as reactiveUtils from "@arcgis/core/core/reactiveUtils";
 import { addDataStore } from "./state";
 
 import type { ConvertOptions } from "./modelConvert";
@@ -197,6 +199,18 @@ export function createModelImportLayer(): LayerModule {
       c.map.add(modelLayer);
       sketch = new SketchViewModel({ view: c.view, layer: modelLayer });
       sketch.on("delete", syncModels);
+      // Placed models block the simulated wind; recompute when they are placed, moved, removed or hidden.
+      registerObstacleSource("placed-models", (extent) =>
+        modelLayer.visible
+          ? modelLayer.graphics
+              .toArray()
+              .map((g) => (g.geometry?.extent ? obstacleFromExtent(g.geometry.extent) : null))
+              .filter((o): o is Obstacle => !!o && intersects(o, extent))
+          : [],
+      );
+      modelLayer.graphics.on("change", notifyObstaclesChanged);
+      sketch.on("update", (e) => e.state === "complete" && notifyObstaclesChanged());
+      reactiveUtils.watch(() => modelLayer.visible, notifyObstaclesChanged);
     },
 
     setVisible(visible) {

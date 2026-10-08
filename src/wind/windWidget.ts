@@ -29,7 +29,7 @@ function mountMapLegend(visible: () => boolean, subscribe: (fn: () => void) => v
   subscribe(() => (el.hidden = !visible()));
 }
 
-/** Wind simulation controls: data source, 3D streamlines, particles, probe, what-if buildings. */
+/** Wind simulation: one switch for the whole simulation, probe, what-if buildings, particle settings. */
 export const windWidget: WidgetModule = {
   id: "wind",
   title: "Simulasi angin 3D",
@@ -51,10 +51,6 @@ export const windWidget: WidgetModule = {
 
     const sim = toggle("Tampilkan simulasi angin", false, (v) => store.set({ layerVisibility: { ...store.state.layerVisibility, "wind-flow": v } }));
     store.on(["layerVisibility"], (s) => (sim.sw.checked = s.layerVisibility["wind-flow"] ?? false), true);
-    const stream = toggle("Streamline 3D (berwarna gangguan)", windStore.state.streamlines, (v) => windStore.set({ streamlines: v }));
-    const pulse = toggle("Animasi pulsa pada streamline", windStore.state.pulse, (v) => windStore.set({ pulse: v }));
-    const effect = toggle("Efek gedung & pohon", windStore.state.buildingEffect, (v) => windStore.set({ buildingEffect: v }));
-    const detail = toggle("Grid detail saat zoom (< 6 km)", windStore.state.detail, (v) => windStore.set({ detail: v }));
 
     const level = h("calcite-select", { label: "Ketinggian partikel", scale: "s" });
     for (const l of LEVELS.slice(0, -1)) level.append(h("calcite-option", { value: String(l), selected: l === windStore.state.animLevel }, `${l} m${l === 2 ? " (pejalan kaki)" : ""}`));
@@ -129,8 +125,9 @@ export const windWidget: WidgetModule = {
       stats.replaceChildren(
         h("div", { class: "muted small" }, ws.gridInfo),
         h("div", {}, h("span", { class: "muted" }, "Gedung dari scene "), h("strong", {}, ws.sceneBuildings.toLocaleString("id-ID")), h("span", { class: "muted" }, ws.sceneBuildings ? "" : " (zoom ke kawasan agar gedung terbaca)")),
+        h("div", {}, h("span", { class: "muted" }, "Objek dari Tambah data "), h("strong", {}, ws.addedObstacles.toLocaleString("id-ID"))),
         h("div", {}, h("span", { class: "muted" }, "Segmen streamline "), h("strong", {}, ws.streamlineCount.toLocaleString("id-ID"))),
-        ...(st && ws.buildingEffect
+        ...(st
           ? [
               h("div", {}, h("span", { class: "muted" }, `Kecepatan di ${ws.animLevel} m vs tanpa penghalang `), h("strong", {}, `${Math.round(st.speedRatio * 100)}%`)),
               h("div", {}, h("span", { class: "muted" }, "Area angin lemah (< 50%) "), h("strong", {}, `${Math.round(st.calmShare * 100)}%`)),
@@ -183,18 +180,13 @@ export const windWidget: WidgetModule = {
       }
     };
     store.on(["weather", "bmkg", "timeIndex"], render, true);
-    windStore.on(["stats", "sceneBuildings", "gridInfo", "whatIf", "buildingEffect", "probe", "probeLevel", "streamlineCount", "animLevel"], render);
+    windStore.on(["stats", "sceneBuildings", "addedObstacles", "gridInfo", "whatIf", "probe", "probeLevel", "streamlineCount", "animLevel"], render);
 
     return h(
       "div",
       { class: "widget" },
       source,
       sim.row,
-      stream.row,
-      pulse.row,
-      effect.row,
-      detail.row,
-      h("calcite-label", { scale: "s" }, "Ketinggian partikel animasi", level),
       h("div", { class: "wind-gradient" }, h("span", {}, "Lemah"), h("div", { style: `background:${gradient.replace("to top", "to right")}` }), h("span", {}, "Kuat")),
       stats,
       h("div", { class: "section-title" }, "Cek angin di satu titik"),
@@ -206,14 +198,18 @@ export const windWidget: WidgetModule = {
       h("calcite-label", { scale: "s" }, "Lebar (m)", size),
       place,
       h("div", { class: "row-actions" }, whatIfCount, clear),
-      h("div", { class: "section-title" }, "Tampilan partikel"),
-      slider("Kepadatan partikel", "density", 0.1, 1, 0.05),
-      slider("Kecepatan animasi", "flowSpeed", 1, 40, 1),
-      slider("Panjang jejak", "trailLength", 20, 1500, 10),
+      h(
+        "calcite-block",
+        { heading: "Pengaturan partikel", collapsible: true, expanded: false },
+        h("calcite-label", { scale: "s" }, "Ketinggian partikel", level),
+        slider("Kepadatan partikel", "density", 0.1, 1, 0.05),
+        slider("Kecepatan animasi", "flowSpeed", 1, 40, 1),
+        slider("Panjang jejak", "trailLength", 20, 1500, 10),
+      ),
       h(
         "p",
         { class: "muted small" },
-        "Model diagnostik (bukan CFD): angin 10 m dari titik cuaca, profil logaritmik per ketinggian, nol di dalam gedung, wake di belakang gedung, dibelokkan dan naik melewati gedung. Gangguan = selisih vektor angin terhadap angin bebas. Zoom ke kawasan agar gedung terbaca.",
+        "Simulasi menampilkan partikel dan streamline 3D berwarna tingkat gangguan. Angin dibelokkan dan naik melewati gedung scene, objek 3D dari menu Tambah data (model glTF/IFC/OBJ…, CityJSON, poligon terekstrusi, I3S), gedung what-if, dan pohon. Model diagnostik (bukan CFD): angin 10 m dari titik cuaca, profil logaritmik per ketinggian, wake di belakang gedung. Zoom ke kawasan agar gedung terbaca.",
       ),
     );
   },

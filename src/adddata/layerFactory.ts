@@ -9,6 +9,11 @@ import OGCFeatureLayer from "@arcgis/core/layers/OGCFeatureLayer";
 import WFSLayer from "@arcgis/core/layers/WFSLayer";
 import WMSLayer from "@arcgis/core/layers/WMSLayer";
 import WMTSLayer from "@arcgis/core/layers/WMTSLayer";
+import * as reactiveUtils from "@arcgis/core/core/reactiveUtils";
+import type Extent from "@arcgis/core/geometry/Extent";
+import type SceneView from "@arcgis/core/views/SceneView";
+import type FeatureLayerView from "@arcgis/core/views/layers/FeatureLayerView";
+import { intersects, notifyObstaclesChanged, obstacleFromExtent, registerObstacleSource, type Obstacle, type ObstacleSource } from "../core/obstacleSources";
 import type { SourceKind, SourceSpec } from "./state";
 
 export interface SourceOption {
@@ -143,8 +148,21 @@ const FLOOR_FIELDS = ["num_floors", "building:levels", "levels", "storeys", "jum
 export const FLOOR_HEIGHT = 3.2;
 export const DEFAULT_BUILDING_HEIGHT = 9;
 
-/** Extrude a polygon layer as 3D buildings from the first height / floors field it has. */
-export function applyExtrusion(layer: Layer): string {
+/**
+ * Register `source` as wind obstacles while `layer` is in the map and visible;
+ * unregister once the layer is removed.
+ */
+function obstaclesWhileInMap(layer: Layer, source: ObstacleSource): void {
+  const unregister = registerObstacleSource(`layer:${layer.uid}`, (extent, signal) => (layer.visible && layer.parent ? source(extent, signal) : []));
+  reactiveUtils.watch(() => layer.visible, notifyObstaclesChanged);
+  reactiveUtils.watch(
+    () => layer.parent,
+    (parent, oldParent) => (!parent && oldParent ? unregister() : notifyObstaclesChanged()),
+  );
+}
+
+/** Extrude a polygon layer as 3D buildings from the first height / floors field it has. Returns the source of the height. */
+export function applyExtrusion(layer: Layer): { label: string; heightOf: (attributes: Record<string, unknown>) => number } {
   const fl = layer as FeatureLayer;
   if (!("geometryType" in fl) || fl.geometryType !== "polygon") throw new Error("Ekstrusi hanya untuk layer poligon.");
   const names = new Map((fl.fields ?? []).map((f) => [f.name.toLowerCase(), f.name]));
@@ -165,7 +183,30 @@ export function applyExtrusion(layer: Layer): string {
     },
     visualVariables: [{ type: "size", valueExpression: expression, valueUnit: "meters" }],
   } as never;
-  return height ?? (floors ? `${floors} × ${FLOOR_HEIGHT} m` : `${DEFAULT_BUILDING_HEIGHT} m (bawaan)`);
+  const heightOf = (a: Record<string, unknown>) => {
+    const h = height ? Number(a?.[height]) : NaN;
+    if (h > 0) return h;
+    const l = floors ? Number(a?.[floors]) : NaN;
+    return l > 0 ? l * FLOOR_HEIGHT : DEFAULT_BUILDING_HEIGHT;
+  };
+  return { label: height ?? (floors ? `${floors} × ${FLOOR_HEIGHT} m` : `${DEFAULT_BUILDING_HEIGHT} m (bawaan)`), heightOf };
+}
+
+/** Extruded polygons block the wind: footprint box + extrusion height of the features loaded in the view. */
+function registerExtrusionObstacles(layer: Layer, heightOf: (a: Record<string, unknown>) => number): void {
+  obstaclesWhileInMap(layer, async (extent: Extent, signal) => {
+    const view = viewProvider?.();
+    if (!view) return [];
+    const lv = (await view.whenLayerView(layer)) as FeatureLayerView;
+    const query = lv.createQuery();
+    query.geometry = extent;
+    query.returnGeometry = true;
+    query.outFields = ["*"];
+    const { features } = await lv.queryFeatures(query, { signal });
+    return features
+      .map((f) => (f.geometry?.extent ? obstacleFromExtent(f.geometry.extent, heightOf(f.attributes ?? {})) : null))
+      .filter((o): o is Obstacle => !!o);
+  });
 }
 
 async function createCityJsonLayer(url: string, epsg?: string): Promise<Layer> {
@@ -174,14 +215,18 @@ async function createCityJsonLayer(url: string, epsg?: string): Promise<Layer> {
   const doc = await res.json();
   const { cityJsonToLayer } = await import("./cityjson");
   const centre = viewCentre?.() ?? [11891000, -692000];
-  const { layer } = await cityJsonToLayer(doc, epsg ? Number(epsg.replace(/\D/g, "")) : null, centre);
+  const { layer, obstacles } = await cityJsonToLayer(doc, epsg ? Number(epsg.replace(/\D/g, "")) : null, centre);
+  // Buildings of the city model block the simulated wind.
+  obstaclesWhileInMap(layer, (extent) => obstacles.filter((o) => intersects(o, extent)));
   return layer;
 }
 
 /** Supplies the view centre (Web Mercator) for sources without coordinates. */
 let viewCentre: (() => [number, number]) | null = null;
-export function setViewCentreProvider(fn: () => [number, number]): void {
-  viewCentre = fn;
+let viewProvider: (() => SceneView) | null = null;
+export function setViewProvider(fn: () => SceneView): void {
+  viewProvider = fn;
+  viewCentre = () => [fn().center?.x ?? 11891000, fn().center?.y ?? -692000];
 }
 
 /** Create (and load) an ArcGIS layer for a source specification. */
@@ -232,6 +277,6 @@ export async function createLayer(spec: SourceSpec): Promise<Layer> {
   }
   if (spec.title) layer.title = spec.title;
   await layer.load();
-  if (spec.extrude) applyExtrusion(layer);
+  if (spec.extrude) registerExtrusionObstacles(layer, applyExtrusion(layer).heightOf);
   return layer;
 }

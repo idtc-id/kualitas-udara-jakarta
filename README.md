@@ -22,7 +22,7 @@ Aplikasi web **digital twin** yang menampilkan polusi udara, cuaca, dan estimasi
 | **Emisi karbon** | Estimasi CO₂e *bottom-up* per sektor & kota administrasi, laju per jam, kolom 3D bertumpuk, **simulasi skenario** (EV, pengurangan km, energi terbarukan, sampah) |
 | **Cuaca BMKG** | Prakiraan per kota administrasi pada jam aktif (ikon & deskripsi BMKG) |
 | **Grafik** | Time series polutan per stasiun + variabel cuaca (termasuk tinggi lapisan batas/PBL), garis ambang ISPU, area prakiraan, tooltip |
-| **Simulasi angin 3D** | Streamline 3D di antara & di atas gedung berwarna **tingkat gangguan** (seperti Tokyo Digital Twin), pulsa animasi, partikel FlowRenderer per ketinggian, **probe titik** per ketinggian. Data angin **BMKG** (prakiraan) / Open-Meteo (historis); gedung dari layer 3D + **gedung what-if** |
+| **Simulasi angin 3D** | Streamline 3D di antara & di atas gedung berwarna **tingkat gangguan** (seperti Tokyo Digital Twin), pulsa animasi, partikel FlowRenderer per ketinggian, **probe titik** per ketinggian. Data angin **BMKG** (prakiraan) / Open-Meteo (historis); gedung dari layer 3D, **objek dari menu Tambah data** (model glTF/IFC/OBJ…, CityJSON, poligon terekstrusi, I3S) + **gedung what-if**. Satu saklar untuk seluruh simulasi |
 | **Simulasi pohon** | Tanam pohon per klik atau massal per kota (7 spesies). Hitung serapan CO₂ & PM2.5 sesuai usia, **emisi bersih** di modul emisi; pohon menjadi penghalang angin berpori. Ekspor GeoJSON |
 | **Tambah data** | Layanan ArcGIS (URL, deteksi otomatis) & item ID, OGC **WMS/WMTS/WFS/OGC API Features**, **GeoJSON/CSV** (URL atau berkas, drag & drop), **OGC 3D Tiles**, dan **model 3D** glTF/GLB, IFC, OBJ, FBX, DAE, USDZ (dikonversi di browser) yang ditempatkan dengan klik (tanpa unggah/penyimpanan) |
 | **Bookmark** | Widget `arcgis-bookmarks`; bawaan: pandangan seluruh Jakarta + setiap sensor (SPKU DKI1–5, US Embassy). Tambah, ubah, urutkan, dan hapus bookmark; disimpan di browser, bisa dipulihkan ke bawaan |
@@ -176,6 +176,10 @@ Terinspirasi tampilan angin [Tokyo Digital Twin](https://3dview.tokyo-digitaltwi
 4. **Partikel animasi** (FlowRenderer pada raster `vector-uv` in-memory) pada ketinggian pilihan, diwarnai relatif terhadap kecepatan angin bebas.
 5. **Probe titik**: klik di peta → kecepatan, arah, dan gangguan per ketinggian + grafik estimasi kecepatan lokal sepanjang timeline.
 6. **Gedung**: footprint + tinggi dari scene layer 3D yang tampil (`SceneLayerView.queryFeatures` → bounding box mesh), ditambah gedung what-if (klik di peta).
+
+**Penghalang angin**: gedung dari layer 3D scene (termasuk I3S yang ditambahkan), objek dari menu **Tambah data** (model yang ditempatkan, gedung CityJSON, poligon GeoJSON/OGC/WFS yang diekstrusi), gedung what-if, dan pohon. Modul lain bisa menambah penghalang lewat `registerObstacleSource()` di `src/core/obstacleSources.ts`; simulasi dihitung ulang otomatis saat objek ditempatkan, digeser, disembunyikan, atau dihapus. 3D Tiles belum menjadi penghalang (fiturnya tidak dapat di-query).
+
+Panel angin cukup satu saklar **Tampilkan simulasi angin** (partikel + streamline 3D + pulsa); ketinggian, kepadatan, kecepatan, dan panjang jejak partikel ada di blok **Pengaturan partikel**.
 
 Grid kota (sel 60 m) saat kamera jauh; grid detail (sel ~3–10 m, medan 3D ~300²) saat ketinggian kamera < 6 km. Semua perhitungan berjalan di Web Worker. Ini model diagnostik cepat, **bukan CFD**; untuk kajian desain gunakan hasil CFD (mis. OpenFOAM) yang dapat dimuat sebagai raster `vector-uv` lewat jalur yang sama.
 

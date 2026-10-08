@@ -1,6 +1,6 @@
 import type { AppContext, WidgetModule } from "../core/modules";
 import { h } from "../ui/dom";
-import { createLayer, setViewCentreProvider, SOURCE_OPTIONS, TYPE_LABELS } from "./layerFactory";
+import { createLayer, setViewProvider, SOURCE_OPTIONS, TYPE_LABELS } from "./layerFactory";
 import type { ModelUnit } from "./modelConvert";
 import { clearModels, COMPANION_FORMATS, editModel, importModel, importModelFromUrl, MODEL_FORMATS, parseLocation, removeModel, zoomToModel } from "./modelImport";
 import { addDataStore, savedSpecs, type SourceSpec } from "./state";
@@ -16,7 +16,7 @@ export const addDataWidget: WidgetModule = {
 
   create(ctx: AppContext) {
     const { map, view } = ctx;
-    setViewCentreProvider(() => [view.center?.x ?? 11891000, view.center?.y ?? -692000]);
+    setViewProvider(() => view);
 
     const addSource = async (spec: SourceSpec, persistent: boolean) => {
       addDataStore.set({ busy: true, message: { kind: "info", text: `Memuat ${TYPE_LABELS[spec.kind]}…` } });
