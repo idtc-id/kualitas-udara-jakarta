@@ -31,8 +31,6 @@ export interface AppConfig {
   archiveUrl: string;
   /** Tree species table for the planting simulation. */
   treeSpeciesUrl: string;
-  /** Editable 3D object scene layer that receives uploaded 3D models (IFC, glTF …). Empty = local preview only. */
-  editable3DObjectLayerUrl: string;
   /** ArcGIS MapServer/FeatureServer with bus routes (polylines) and stops (points). */
   transitServiceUrl: string;
   /** Default basemap per theme (ArcGIS 3D basemaps include 3D buildings, labels and trees). */
@@ -64,7 +62,6 @@ export const appConfig: AppConfig = {
   emissionInventoryUrl: "./data/emission-inventory.json",
   archiveUrl: "./data/archive",
   treeSpeciesUrl: "./data/tree-species.json",
-  editable3DObjectLayerUrl: env.VITE_3D_OBJECT_LAYER_URL ?? "",
   transitServiceUrl: env.VITE_TRANSIT_SERVICE_URL || "https://jakartasatu.jakarta.go.id/server/rest/services/PETA_JAKARTA/Rute_Transjakarta/MapServer",
   basemaps: { dark: "dark-gray-3d", light: "gray-3d" },
   fallbackBasemaps: { dark: "dark-gray-vector", light: "gray-vector" },

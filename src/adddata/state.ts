@@ -33,7 +33,7 @@ export interface AddedLayer {
   persistent: boolean;
 }
 
-export interface PendingModel {
+export interface PlacedModel {
   id: string;
   fileName: string;
 }
@@ -42,20 +42,15 @@ export interface AddDataState {
   entries: AddedLayer[];
   busy: boolean;
   message: { kind: "success" | "danger" | "info"; text: string } | null;
-  /** URL of the editable 3D object scene layer that receives uploaded models. */
-  modelTargetUrl: string;
-  modelTargetStatus: string;
-  /** Models placed in the scene but not yet saved with applyEdits. */
-  pendingModels: PendingModel[];
+  /** glTF/GLB models placed in the scene (session only). */
+  models: PlacedModel[];
 }
 
 export const addDataStore = new Store<AddDataState>({
   entries: [],
   busy: false,
   message: null,
-  modelTargetUrl: "",
-  modelTargetStatus: "",
-  pendingModels: [],
+  models: [],
 });
 
 const STORAGE_KEY = "dt-airpolution:added-layers";

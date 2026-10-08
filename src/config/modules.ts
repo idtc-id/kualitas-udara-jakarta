@@ -59,7 +59,7 @@ export function createRegistry(): ModuleRegistry {
     createFlowLayer(),
     createWindLayer(),
     createTreesLayer(appConfig.treeSpeciesUrl),
-    createModelImportLayer(appConfig.editable3DObjectLayerUrl),
+    createModelImportLayer(),
     createTransitLayer(appConfig.transitServiceUrl),
     createSpaceTimeCubeLayer(),
     createEmissionsLayer(appConfig.emissionInventoryUrl),

@@ -1,7 +1,7 @@
 import type { AppContext, WidgetModule } from "../core/modules";
 import { h } from "../ui/dom";
 import { createLayer, SOURCE_OPTIONS, TYPE_LABELS } from "./layerFactory";
-import { discardPendingModels, importModel, LOCAL_FORMATS, savePendingModels, SERVER_FORMATS, setModelTarget } from "./modelImport";
+import { clearModels, editModel, importModel, MODEL_FORMATS, removeModel, zoomToModel } from "./modelImport";
 import { addDataStore, savedSpecs, type SourceSpec } from "./state";
 
 type Section = "service" | "file" | "model";
@@ -117,38 +117,30 @@ export const addDataWidget: WidgetModule = {
       h("p", { class: "muted small" }, "CSV: kolom koordinat (lat/lon, latitude/longitude, y/x) dideteksi otomatis. GeoJSON: FeatureCollection WGS84. Berkas lokal tidak disimpan setelah halaman dimuat ulang."),
     );
 
-    // --- 3D models
-    const target = h("calcite-input-text", { scale: "s", placeholder: "https://…/SceneServer/layers/0", value: addDataStore.state.modelTargetUrl });
-    const connect = h("calcite-button", { iconStart: "link", scale: "s", appearance: "outline" }, "Hubungkan");
-    connect.addEventListener("click", () => void setModelTarget(target.value));
-    const targetStatus = h("div", { class: "muted small" });
-    const modelInput = h("input", { type: "file", accept: SERVER_FORMATS.join(","), multiple: true, hidden: true });
+    // --- 3D models (glTF / GLB, placed in the browser only)
+    const modelInput = h("input", { type: "file", accept: MODEL_FORMATS.join(","), multiple: false, hidden: true });
     modelInput.addEventListener("change", () => {
       void importModel([...(modelInput.files ?? [])]);
       modelInput.value = "";
     });
-    const pickModel = h("calcite-button", { iconStart: "cube", scale: "s", width: "full" }, "Pilih model 3D");
+    const pickModel = h("calcite-button", { iconStart: "cube", scale: "s", width: "full" }, "Pilih model glTF / GLB");
     pickModel.addEventListener("click", () => modelInput.click());
-    const pendingList = h("div", { class: "plantings" });
-    const save = h("calcite-button", { iconStart: "save", scale: "s", kind: "brand" }, "Simpan ke layer (applyEdits)");
-    save.addEventListener("click", () => void savePendingModels());
-    const discard = h("calcite-button", { iconStart: "x", scale: "s", appearance: "transparent", kind: "danger" }, "Batalkan");
-    discard.addEventListener("click", discardPendingModels);
+    const modelList = h("div", { class: "added-list" });
+    const clearAll = h("calcite-button", { iconStart: "trash", scale: "s", appearance: "transparent", kind: "danger" }, "Hapus semua model");
+    clearAll.addEventListener("click", clearModels);
     const modelBox = h(
       "div",
       { class: "widget-section", hidden: true },
-      h("calcite-label", { scale: "s" }, "3D object scene layer target (editable)", h("div", { class: "input-row" }, target, connect)),
-      targetStatus,
-      dropZone("Tarik & lepas model 3D di sini (IFC, glTF/GLB, OBJ, FBX, DAE, USDZ)", (files) => void importModel(files)),
+      dropZone("Tarik & lepas model glTF (.gltf) atau GLB (.glb) di sini", (files) => void importModel(files)),
       pickModel,
       modelInput,
-      h("div", { class: "section-title" }, "Model belum disimpan"),
-      pendingList,
-      h("div", { class: "row-actions" }, discard, save),
+      h("div", { class: "section-title" }, "Model di peta"),
+      modelList,
+      clearAll,
       h(
         "p",
         { class: "muted small" },
-        `Alur mengikuti sample ArcGIS "SceneLayer upload 3D models and applyEdits": model dikonversi oleh layanan 3D object layer (convertMesh), ditempatkan dengan klik, bisa digeser/diputar/diskalakan, lalu disimpan dengan applyEdits. Model bergeoreferensi (mis. IFC dengan koordinat) langsung ditempatkan di lokasinya. Tanpa layer target, hanya ${LOCAL_FORMATS.join("/")} yang bisa dipratinjau (tidak tersimpan). Layer target harus editable dan mungkin perlu login ArcGIS.`,
+        "Model dibaca langsung di browser lalu ditempatkan dengan klik di peta; setelah itu bisa digeser, diputar, dan diskalakan. Model tidak diunggah atau disimpan dan hilang saat halaman dimuat ulang. Gunakan .glb, atau .gltf dengan data (buffer/tekstur) tertanam. Format lain (IFC, OBJ, FBX, DAE, USDZ) belum didukung karena butuh konversi di server.",
       ),
     );
 
@@ -166,15 +158,26 @@ export const addDataWidget: WidgetModule = {
     const loader = h("calcite-loader", { inline: true, label: "Memuat", hidden: true });
     const list = h("div", { class: "added-list" });
 
-    addDataStore.on(["message", "busy", "entries", "modelTargetStatus", "pendingModels"], (s) => {
+    addDataStore.on(["message", "busy", "entries", "models"], (s) => {
       notice.open = !!s.message;
       notice.kind = s.message?.kind === "danger" ? "danger" : s.message?.kind === "success" ? "success" : "brand";
       noticeMsg.textContent = s.message?.text ?? "";
       loader.hidden = !s.busy;
       addBtn.disabled = s.busy;
-      targetStatus.textContent = s.modelTargetStatus;
-      save.disabled = !s.pendingModels.length || s.busy;
-      pendingList.replaceChildren(...s.pendingModels.map((m) => h("div", { class: "planting" }, h("span", {}, m.fileName))));
+      clearAll.hidden = !s.models.length;
+      modelList.replaceChildren(
+        ...(s.models.length
+          ? s.models.map((m) => {
+              const edit = h("calcite-action", { icon: "move", text: "Geser / putar / skala", scale: "s" });
+              edit.addEventListener("click", () => editModel(m.id));
+              const zoom = h("calcite-action", { icon: "zoom-to-object", text: "Perbesar ke model", scale: "s" });
+              zoom.addEventListener("click", () => zoomToModel(m.id));
+              const remove = h("calcite-action", { icon: "trash", text: "Hapus", scale: "s" });
+              remove.addEventListener("click", () => removeModel(m.id));
+              return h("div", { class: "added-item" }, h("div", { class: "added-item__text" }, h("strong", {}, m.fileName), h("span", { class: "muted small" }, "glTF/GLB · sesi ini")), edit, zoom, remove);
+            })
+          : [h("div", { class: "muted small" }, "Belum ada model.")]),
+      );
 
       list.replaceChildren(
         ...(s.entries.length
