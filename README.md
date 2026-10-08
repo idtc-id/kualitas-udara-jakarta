@@ -46,7 +46,6 @@ Konfigurasi opsional lewat `.env` (lihat `.env.example`):
 
 | Variabel | Fungsi |
 |---|---|
-| `VITE_ARCGIS_API_KEY` | API key ArcGIS (ArcGIS Location Platform) bila basemap 3D / item butuh autentikasi. Tanpa key, aplikasi otomatis beralih ke basemap 2D + bangunan cadangan |
 | `VITE_BMKG_BASE_URL` | Base URL API BMKG. Default `/proxy/bmkg` (proxy Vite) saat dev, `https://api.bmkg.go.id` saat build |
 | `VITE_USE_MOCK_DATA` | `true` = selalu pakai data sintetis (demo offline) |
 | `VITE_UDARA_JAKARTA_URL` | Endpoint JSON data SPKU DLH DKI (udara.jakarta.go.id) atau proxy Anda |
@@ -229,7 +228,7 @@ Layer berbasis URL diingat di browser; berkas lokal tidak.
 | Overture Maps / OSM (GeoJSON, OGC API Features) dengan tinggi atau jumlah lantai | GeoJSON / OGC API Features + ekstrusi |
 | Repositori model (GitHub, Zenodo, …) | Model 3D (URL) |
 
-Layanan harus mengizinkan CORS. Cesium ion belum didukung langsung (butuh alur token tersendiri).
+Layanan harus mengizinkan CORS. 
 
 ![CityJSON dengan atap/dinding semantik](docs/screenshots/10-cityjson.png)
 
