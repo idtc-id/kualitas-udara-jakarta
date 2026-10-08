@@ -2,6 +2,7 @@ import { categoryOf, INDICATOR_LABELS, indicatorUnit } from "../core/ispu";
 import type { WidgetModule } from "../core/modules";
 import { citySummary, cityWeather, readingsAt } from "../core/selectors";
 import { compassLabel } from "../providers/weather/conditions";
+import { cameraAt } from "../core/camera";
 import { h } from "../ui/dom";
 
 /** City-wide headline: average value, ISPU category, dominant pollutant, station ranking. */
@@ -11,7 +12,7 @@ export const summaryWidget: WidgetModule = {
   icon: "dashboard",
   placement: "end",
 
-  create({ store, config }) {
+  create({ store, config, view }) {
     const notice = h("calcite-notice", { kind: "warning", scale: "s", width: "full", icon: "exclamation-mark-triangle", open: false },
       h("div", { slot: "message" }, "Sumber data tidak dapat diakses. Menampilkan data contoh (sintetis), bukan pengukuran."),
     );
@@ -29,7 +30,11 @@ export const summaryWidget: WidgetModule = {
 
     list.addEventListener("calciteListItemSelect", (e) => {
       const id = (e.target as HTMLElement).getAttribute("data-station");
-      if (id) store.set({ selectedStationId: id });
+      if (!id) return;
+      store.set({ selectedStationId: id });
+      // Fly to the station, keeping the current viewing direction.
+      const st = config.stations.find((s) => s.id === id);
+      if (st) void view.goTo(cameraAt(st.longitude, st.latitude, undefined, undefined, view.camera?.heading ?? 0), { duration: 1500 }).catch(() => {});
     });
 
     const stations = new Map(config.stations.map((s) => [s.id, s]));
