@@ -16,6 +16,7 @@ import { createTreesLayer } from "../greening/treesLayer";
 import { createTreesWidget } from "../greening/treesWidget";
 import { createFlowLayer } from "../wind/flowLayer";
 import { windWidget } from "../wind/windWidget";
+import { bookmarksWidget } from "../widgets/bookmarksWidget";
 import { addDataWidget } from "../adddata/addDataWidget";
 import { createModelImportLayer } from "../adddata/modelImport";
 import { createEmissionWidget } from "../emissions/emissionWidget";
@@ -66,6 +67,7 @@ export function createRegistry(): ModuleRegistry {
   const registry: ModuleRegistry = { airQualityProviders, weatherProviders, layers, widgets: [] };
   const widgets: WidgetModule[] = [
     addDataWidget,
+    bookmarksWidget,
     chartWidget,
     weatherWidget,
     windWidget,

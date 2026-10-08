@@ -25,6 +25,7 @@ Aplikasi web **digital twin** yang menampilkan polusi udara, cuaca, dan estimasi
 | **Simulasi angin 3D** | Streamline 3D di antara & di atas gedung berwarna **tingkat gangguan** (seperti Tokyo Digital Twin), pulsa animasi, partikel FlowRenderer per ketinggian, **probe titik** per ketinggian. Data angin **BMKG** (prakiraan) / Open-Meteo (historis); gedung dari layer 3D + **gedung what-if** |
 | **Simulasi pohon** | Tanam pohon per klik atau massal per kota (7 spesies). Hitung serapan CO₂ & PM2.5 sesuai usia, **emisi bersih** di modul emisi; pohon menjadi penghalang angin berpori. Ekspor GeoJSON |
 | **Tambah data** | Layanan ArcGIS (URL, deteksi otomatis) & item ID, OGC **WMS/WMTS/WFS/OGC API Features**, **GeoJSON/CSV** (URL atau berkas, drag & drop), **OGC 3D Tiles**, dan **model 3D** glTF/GLB, IFC, OBJ, FBX, DAE, USDZ (dikonversi di browser) yang ditempatkan dengan klik (tanpa unggah/penyimpanan) |
+| **Bookmark** | Widget `arcgis-bookmarks`; bawaan: pandangan seluruh Jakarta + setiap sensor (SPKU DKI1–5, US Embassy). Tambah, ubah, urutkan, dan hapus bookmark; disimpan di browser, bisa dipulihkan ke bawaan |
 | **Basemap 3D** | Basemap 3D ArcGIS (bangunan, label, pohon 3D) dengan pemilih basemap; fallback otomatis ke 2D + OSM 3D Buildings |
 | **Tema** | Gelap/terang (Calcite) |
 
@@ -177,6 +178,12 @@ Terinspirasi tampilan angin [Tokyo Digital Twin](https://3dview.tokyo-digitaltwi
 6. **Gedung**: footprint + tinggi dari scene layer 3D yang tampil (`SceneLayerView.queryFeatures` → bounding box mesh), ditambah gedung what-if (klik di peta).
 
 Grid kota (sel 60 m) saat kamera jauh; grid detail (sel ~3–10 m, medan 3D ~300²) saat ketinggian kamera < 6 km. Semua perhitungan berjalan di Web Worker. Ini model diagnostik cepat, **bukan CFD**; untuk kajian desain gunakan hasil CFD (mis. OpenFOAM) yang dapat dimuat sebagai raster `vector-uv` lewat jalur yang sama.
+
+## Bookmark
+
+![Bookmark sensor](docs/screenshots/11-bookmark.png)
+
+Widget [Bookmarks](https://developers.arcgis.com/javascript/latest/sample-code/bookmarks/) (`arcgis-bookmarks`) di action bar. Bookmark bawaan dibuat otomatis dari `appConfig.stations` (hanya sensor nyata: SPKU dan US Embassy, bukan titik model) dengan kamera miring yang membingkai kolom stasiun 3D, ditambah pandangan seluruh Jakarta. Bookmark yang ditambah/diubah pengguna disimpan di `localStorage`; tombol "Pulihkan bookmark sensor bawaan" mengembalikan daftar awal.
 
 ## Tambah data
 

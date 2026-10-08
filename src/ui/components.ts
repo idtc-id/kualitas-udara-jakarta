@@ -33,3 +33,4 @@ import "@arcgis/map-components/components/arcgis-zoom";
 import "@arcgis/map-components/components/arcgis-navigation-toggle";
 import "@arcgis/map-components/components/arcgis-compass";
 import "@arcgis/map-components/components/arcgis-home";
+import "@arcgis/map-components/components/arcgis-bookmarks";
